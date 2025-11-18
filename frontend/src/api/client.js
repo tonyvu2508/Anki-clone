@@ -3,8 +3,15 @@ import { getToken, removeToken } from '../utils/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
+// Remove trailing slash and ensure /api is added only once
+const baseURL = API_URL.endsWith('/api') 
+  ? API_URL 
+  : API_URL.endsWith('/') 
+    ? `${API_URL}api` 
+    : `${API_URL}/api`;
+
 const client = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
