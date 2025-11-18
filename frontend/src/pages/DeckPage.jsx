@@ -4,6 +4,7 @@ import { getDeck, togglePublicDeck, exportDeck, generateTreeCards } from '../api
 import { getItems, createItem } from '../api/items';
 import TreeView from '../components/TreeView';
 import CardList from '../components/CardList';
+import './DeckPage.css';
 
 function DeckPage() {
   const { id } = useParams();
@@ -116,21 +117,21 @@ function DeckPage() {
   const isLeaf = selectedItem && (!selectedItem.children || selectedItem.children.length === 0);
 
   if (loading) {
-    return <div style={styles.container}>Loading...</div>;
+    return <div className="deck-page">Loading...</div>;
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <button onClick={() => navigate('/decks')} style={styles.backButton}>
+    <div className="deck-page">
+      <div className="deck-header">
+        <button onClick={() => navigate('/decks')} className="back-button">
           ← Back to Decks
         </button>
-        <h1>{deck?.title || 'Deck'}</h1>
-        <div style={styles.headerActions}>
+        <h1 className="deck-title">{deck?.title || 'Deck'}</h1>
+        <div className="deck-header-actions">
           {deck?.isPublic && deck?.publicId && (
             <button
               onClick={copyPublicLink}
-              style={styles.shareButton}
+              className="secondary-button"
               title="Copy public link"
             >
               📋 Share Link
@@ -138,16 +139,14 @@ function DeckPage() {
           )}
           <button
             onClick={handleTogglePublic}
-            style={{
-              ...styles.toggleButton,
-              backgroundColor: deck?.isPublic ? '#28a745' : '#6c757d'
-            }}
+            className="toggle-button"
+            style={{ backgroundColor: deck?.isPublic ? '#28a745' : '#6c757d' }}
           >
             {deck?.isPublic ? '🔓 Public' : '🔒 Private'}
           </button>
           <button
             onClick={handleExport}
-            style={styles.exportButton}
+            className="secondary-button"
             title="Export deck as JSON"
           >
             📥 Export
@@ -155,30 +154,30 @@ function DeckPage() {
           <button
             onClick={handleGenerateTreeCards}
             disabled={generatingCards}
-            style={styles.generateButton}
+            className="secondary-button"
             title="Generate cards from tree: Front = item title, Back = children titles"
           >
             {generatingCards ? 'Generating...' : '🎴 Generate Tree Cards'}
           </button>
           <button
             onClick={() => navigate(`/review?deckId=${id}`)}
-            style={styles.reviewButton}
+            className="primary-button"
           >
             Review
           </button>
         </div>
       </div>
 
-      {error && <div style={styles.error}>{error}</div>}
+      {error && <div className="error-banner">{error}</div>}
 
-      <div style={styles.content}>
-        <div style={styles.treeSection}>
-          <div style={styles.treeHeader}>
+      <div className="deck-content">
+        <div className="deck-tree-section">
+          <div className="deck-tree-header">
             <h2>Tree Structure</h2>
             {!showAddRootForm && (
               <button
                 onClick={() => setShowAddRootForm(true)}
-                style={styles.addButton}
+                className="primary-button"
               >
                 + Add Root Item
               </button>
@@ -186,30 +185,30 @@ function DeckPage() {
           </div>
 
           {showAddRootForm && (
-            <form onSubmit={handleAddRootItem} style={styles.addForm}>
+            <form onSubmit={handleAddRootItem} className="deck-add-root-form">
               <input
                 type="text"
                 placeholder="Root item title"
                 value={newItemTitle}
                 onChange={(e) => setNewItemTitle(e.target.value)}
-                style={styles.input}
+                className="deck-input"
                 autoFocus
               />
-              <button type="submit" style={styles.submitButton}>Add</button>
+              <button type="submit" className="primary-button">Add</button>
               <button
                 type="button"
                 onClick={() => {
                   setShowAddRootForm(false);
                   setNewItemTitle('');
                 }}
-                style={styles.cancelButton}
+                className="secondary-button"
               >
                 Cancel
               </button>
             </form>
           )}
 
-          <div style={styles.treeContainer}>
+          <div className="deck-tree-container">
             <TreeView
               items={items}
               deckId={id}
@@ -220,7 +219,7 @@ function DeckPage() {
           </div>
         </div>
 
-        <div style={styles.cardsSection}>
+        <div className="deck-cards-section">
           <CardList
             itemId={selectedItem?._id}
             isLeaf={isLeaf}
@@ -230,142 +229,6 @@ function DeckPage() {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '1400px',
-    margin: '0 auto',
-    padding: '2rem',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    marginBottom: '2rem',
-  },
-  backButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  reviewButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  shareButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    marginRight: '0.5rem',
-  },
-  toggleButton: {
-    padding: '0.5rem 1rem',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    marginRight: '0.5rem',
-  },
-  exportButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#17a2b8',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    marginRight: '0.5rem',
-  },
-  generateButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#6f42c1',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    marginRight: '0.5rem',
-  },
-  headerActions: {
-    marginLeft: 'auto',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  content: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '2rem',
-  },
-  treeSection: {
-    backgroundColor: 'white',
-    padding: '1.5rem',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  },
-  treeHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1rem',
-  },
-  addButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  addForm: {
-    display: 'flex',
-    gap: '0.5rem',
-    marginBottom: '1rem',
-  },
-  input: {
-    flex: 1,
-    padding: '0.5rem',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-  },
-  submitButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  cancelButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  treeContainer: {
-    maxHeight: '600px',
-    overflowY: 'auto',
-  },
-  cardsSection: {
-    minHeight: '400px',
-  },
-  error: {
-    color: 'red',
-    marginBottom: '1rem',
-    padding: '0.5rem',
-    backgroundColor: '#ffe6e6',
-    borderRadius: '4px',
-  },
-};
 
 export default DeckPage;
 
