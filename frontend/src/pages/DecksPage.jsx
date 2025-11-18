@@ -5,6 +5,42 @@ import { importApkg } from '../api/apkg';
 import { removeToken } from '../utils/auth';
 import './DecksPage.css';
 
+const generateRandomId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const reencodeDeckData = (data) => {
+  const cloned = JSON.parse(JSON.stringify(data));
+  const idMap = new Map();
+
+  if (Array.isArray(cloned.items)) {
+    cloned.items = cloned.items.map((item) => {
+      const originalId = item._id || item.id || generateRandomId();
+      const newId = generateRandomId();
+      idMap.set(originalId, newId);
+      return {
+        ...item,
+        _id: newId,
+      };
+    }).map((item) => ({
+      ...item,
+      parentId: item.parentId ? idMap.get(item.parentId) || item.parentId : null,
+    }));
+  }
+
+  if (Array.isArray(cloned.cards)) {
+    cloned.cards = cloned.cards.map((card) => ({
+      ...card,
+      itemId: idMap.get(card.itemId) || card.itemId,
+    }));
+  }
+
+  return cloned;
+};
+
 function DecksPage() {
   const [decks, setDecks] = useState([]);
   const [newDeckTitle, setNewDeckTitle] = useState('');
@@ -116,7 +152,8 @@ function DecksPage() {
         throw new Error('Invalid deck file format');
       }
 
-      const response = await importDeck(deckData);
+      const encodedDeckData = reencodeDeckData(deckData);
+      const response = await importDeck(encodedDeckData);
       setDecks([response.data, ...decks]);
       alert('Deck imported successfully!');
       navigate(`/decks/${response.data._id}`);
