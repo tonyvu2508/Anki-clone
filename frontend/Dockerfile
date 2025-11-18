@@ -2,10 +2,15 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
+# Build argument for API URL
+ARG VITE_API_URL=http://localhost:4000
+
 COPY package*.json ./
 RUN npm install
 
 COPY . .
+# Set environment variable for build
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 FROM nginx:alpine
