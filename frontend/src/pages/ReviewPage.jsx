@@ -76,9 +76,11 @@ function ReviewPage() {
       const remainingCards = cards.filter((_, i) => i !== currentIndex);
       let newCards = remainingCards;
       
-      // If user selected "Again" (quality 0), requeue the card at the end
+      // If user selected "Again" (quality 0), insert the card at position 10 (after 9 cards)
       if (quality === 0) {
-        newCards = [...remainingCards, updatedCard];
+        const insertPosition = Math.min(10, remainingCards.length);
+        newCards = [...remainingCards];
+        newCards.splice(insertPosition, 0, updatedCard);
       }
       
       setCards(newCards);
