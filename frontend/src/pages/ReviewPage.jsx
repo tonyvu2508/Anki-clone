@@ -82,6 +82,12 @@ function ReviewPage() {
         newCards = [...remainingCards];
         newCards.splice(insertPosition, 0, updatedCard);
       }
+      // If user selected "Hard" (quality 1), insert the card at position 20 (after 19 cards)
+      else if (quality === 1) {
+        const insertPosition = Math.min(20, remainingCards.length);
+        newCards = [...remainingCards];
+        newCards.splice(insertPosition, 0, updatedCard);
+      }
       
       setCards(newCards);
       
