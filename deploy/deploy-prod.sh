@@ -59,6 +59,8 @@ sg docker -c "docker image prune -f" || true
 
 # Build and start containers
 echo -e "${GREEN}🔨 Building and starting containers...${NC}"
+# Export env vars for docker compose
+export $(cat "$PROJECT_DIR/.env.production" | grep -v '^#' | xargs)
 sg docker -c "cd $PROJECT_DIR && docker compose -f $COMPOSE_FILE up -d --build"
 
 # Wait for services to be ready
