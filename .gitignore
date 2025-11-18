@@ -19,6 +19,9 @@ build/
 *.swo
 *~
 
+# Local deployment script
+deploy-prod.sh
+
 # OS
 .DS_Store
 Thumbs.db
