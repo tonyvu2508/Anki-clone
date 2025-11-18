@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDecks, createDeck, deleteDeck, importDeck } from '../api/decks';
 import { importApkg } from '../api/apkg';
 import { removeToken } from '../utils/auth';
+import './DecksPage.css';
 
 function DecksPage() {
   const [decks, setDecks] = useState([]);
@@ -131,30 +132,30 @@ function DecksPage() {
   };
 
   if (loading) {
-    return <div style={styles.container}>Loading...</div>;
+    return <div className="decks-container">Loading...</div>;
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
+    <div className="decks-container">
+      <div className="decks-header">
         <h1>My Decks</h1>
-        <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
+        <button onClick={handleLogout} className="logout-button">Logout</button>
       </div>
 
-      {error && <div style={styles.error}>{error}</div>}
+      {error && <div className="error-banner">{error}</div>}
 
-      <div style={styles.actionsRow}>
-        <form onSubmit={handleCreateDeck} style={styles.form}>
+      <div className="decks-actions">
+        <form onSubmit={handleCreateDeck} className="decks-form">
           <input
             type="text"
             placeholder="New deck title"
             value={newDeckTitle}
             onChange={(e) => setNewDeckTitle(e.target.value)}
-            style={styles.input}
+            className="decks-input"
           />
-          <button type="submit" style={styles.button}>Create Deck</button>
+          <button type="submit" className="primary-button full-width-mobile">Create Deck</button>
         </form>
-        <div style={styles.importSection}>
+        <div className="decks-imports">
           <input
             ref={fileInputRef}
             type="file"
@@ -172,7 +173,7 @@ function DecksPage() {
           <button
             onClick={handleImportClick}
             disabled={importing || importingApkg}
-            style={styles.importButton}
+            className="secondary-button full-width-mobile"
             title="Import from JSON"
           >
             {importing ? 'Importing...' : '📤 Import JSON'}
@@ -180,7 +181,7 @@ function DecksPage() {
           <button
             onClick={handleImportApkgClick}
             disabled={importing || importingApkg}
-            style={styles.importButton}
+            className="secondary-button full-width-mobile"
             title="Import from Anki .apkg file"
           >
             {importingApkg ? 'Importing...' : '📦 Import APKG'}
@@ -188,15 +189,15 @@ function DecksPage() {
         </div>
       </div>
 
-      <div style={styles.decksGrid}>
+      <div className="decks-grid">
         {decks.map(deck => (
-          <div key={deck._id} style={styles.deckCard}>
-            <h3 onClick={() => navigate(`/decks/${deck._id}`)} style={styles.deckTitle}>
+          <div key={deck._id} className="deck-card">
+            <h3 onClick={() => navigate(`/decks/${deck._id}`)} className="deck-title">
               {deck.title}
             </h3>
             <button
               onClick={() => handleDeleteDeck(deck._id)}
-              style={styles.deleteButton}
+              className="danger-button"
             >
               Delete
             </button>
@@ -205,112 +206,11 @@ function DecksPage() {
       </div>
 
       {decks.length === 0 && (
-        <p style={styles.empty}>No decks yet. Create your first deck!</p>
+        <p className="empty-state">No decks yet. Create your first deck!</p>
       )}
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '2rem',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '2rem',
-  },
-  logoutButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  actionsRow: {
-    display: 'flex',
-    gap: '1rem',
-    marginBottom: '2rem',
-    alignItems: 'flex-start',
-  },
-  form: {
-    display: 'flex',
-    gap: '1rem',
-    flex: 1,
-  },
-  importSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  importButton: {
-    padding: '0.75rem 1.5rem',
-    backgroundColor: '#17a2b8',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '1rem',
-  },
-  input: {
-    flex: 1,
-    padding: '0.75rem',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '1rem',
-  },
-  button: {
-    padding: '0.75rem 1.5rem',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  decksGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-    gap: '1rem',
-  },
-  deckCard: {
-    backgroundColor: 'white',
-    padding: '1.5rem',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  deckTitle: {
-    cursor: 'pointer',
-    color: '#007bff',
-    margin: 0,
-  },
-  deleteButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  error: {
-    color: 'red',
-    marginBottom: '1rem',
-    padding: '0.5rem',
-    backgroundColor: '#ffe6e6',
-    borderRadius: '4px',
-  },
-  empty: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: '2rem',
-  },
-};
 
 export default DecksPage;
 
