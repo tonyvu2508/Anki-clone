@@ -135,24 +135,21 @@ const importDeck = async (req, res) => {
       // Get all items from database to ensure we have the latest data
       const allItems = await Item.find({ deck: newDeck._id });
       
-      // Build a map of old itemId to new item for better lookup
-      const itemIdToItemMap = new Map();
+      // Build a map of new itemId (ObjectId) to item for quick lookup
+      const newIdToItemMap = new Map();
       for (const item of allItems) {
-        // Try to find matching old ID by checking if item was created from import
-        // We'll use the oldIdToNewIdMap in reverse to find items
-        for (const [oldId, newId] of oldIdToNewIdMap.entries()) {
-          if (newId.toString() === item._id.toString()) {
-            itemIdToItemMap.set(oldId, item);
-            break;
-          }
+        newIdToItemMap.set(item._id.toString(), item);
+      }
+      
+      // Also build a title-to-item map as fallback (handle duplicates by using first match)
+      const titleToItemMap = new Map();
+      for (const item of allItems) {
+        if (!titleToItemMap.has(item.title)) {
+          titleToItemMap.set(item.title, item);
         }
       }
       
-      // Also build a title-to-item map as fallback
-      const titleToItemMap = new Map();
-      for (const item of allItems) {
-        titleToItemMap.set(item.title, item);
-      }
+      console.log(`📋 Processing ${deckData.cards.length} cards, ${oldIdToNewIdMap.size} items mapped`);
       
       for (const cardData of deckData.cards) {
         // Find item by old itemId (from export) or by title (fallback)
@@ -163,10 +160,10 @@ const importDeck = async (req, res) => {
         if (cardData.itemId) {
           if (oldIdToNewIdMap.has(cardData.itemId)) {
             itemId = oldIdToNewIdMap.get(cardData.itemId);
-            item = allItems.find(i => i._id.toString() === itemId.toString());
-          } else if (itemIdToItemMap.has(cardData.itemId)) {
-            item = itemIdToItemMap.get(cardData.itemId);
-            itemId = item._id;
+            item = newIdToItemMap.get(itemId.toString());
+            if (!item) {
+              console.warn(`⚠️  Item ID ${itemId} from mapping not found in database for card itemId: ${cardData.itemId}`);
+            }
           }
         }
         
@@ -178,7 +175,7 @@ const importDeck = async (req, res) => {
           }
         }
         
-        // Last fallback: find in itemsToCreate array
+        // Last fallback: find in itemsToCreate array (shouldn't be needed but just in case)
         if (!item && cardData.itemTitle) {
           const foundItem = itemsToCreate.find(it => it.item.title === cardData.itemTitle);
           if (foundItem) {
