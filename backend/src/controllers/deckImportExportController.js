@@ -123,27 +123,71 @@ const importDeck = async (req, res) => {
           await itemData.item.save();
         }
       }
+      
+      console.log(`✅ Created ${itemsToCreate.length} items, mapped ${oldIdToNewIdMap.size} IDs`);
     }
 
     // Create cards
     if (deckData.cards && Array.isArray(deckData.cards)) {
       const cardsToCreate = [];
+      const skippedCards = [];
+      
+      // Get all items from database to ensure we have the latest data
+      const allItems = await Item.find({ deck: newDeck._id });
+      
+      // Build a map of old itemId to new item for better lookup
+      const itemIdToItemMap = new Map();
+      for (const item of allItems) {
+        // Try to find matching old ID by checking if item was created from import
+        // We'll use the oldIdToNewIdMap in reverse to find items
+        for (const [oldId, newId] of oldIdToNewIdMap.entries()) {
+          if (newId.toString() === item._id.toString()) {
+            itemIdToItemMap.set(oldId, item);
+            break;
+          }
+        }
+      }
+      
+      // Also build a title-to-item map as fallback
+      const titleToItemMap = new Map();
+      for (const item of allItems) {
+        titleToItemMap.set(item.title, item);
+      }
       
       for (const cardData of deckData.cards) {
         // Find item by old itemId (from export) or by title (fallback)
         let itemId = null;
+        let item = null;
         
-        if (cardData.itemId && oldIdToNewIdMap.has(cardData.itemId)) {
-          itemId = oldIdToNewIdMap.get(cardData.itemId);
-        } else if (cardData.itemTitle) {
-          // Fallback: find by title
-          const item = itemsToCreate.find(it => it.item.title === cardData.itemTitle);
-          if (item) {
-            itemId = item.item._id;
+        // First try: find by itemId in the oldIdToNewIdMap
+        if (cardData.itemId) {
+          if (oldIdToNewIdMap.has(cardData.itemId)) {
+            itemId = oldIdToNewIdMap.get(cardData.itemId);
+            item = allItems.find(i => i._id.toString() === itemId.toString());
+          } else if (itemIdToItemMap.has(cardData.itemId)) {
+            item = itemIdToItemMap.get(cardData.itemId);
+            itemId = item._id;
           }
         }
         
-        if (itemId) {
+        // Fallback: find by title
+        if (!item && cardData.itemTitle) {
+          item = titleToItemMap.get(cardData.itemTitle);
+          if (item) {
+            itemId = item._id;
+          }
+        }
+        
+        // Last fallback: find in itemsToCreate array
+        if (!item && cardData.itemTitle) {
+          const foundItem = itemsToCreate.find(it => it.item.title === cardData.itemTitle);
+          if (foundItem) {
+            item = foundItem.item;
+            itemId = item._id;
+          }
+        }
+        
+        if (itemId && item) {
           const newCard = new Card({
             item: itemId,
             deck: newDeck._id,
@@ -153,12 +197,44 @@ const importDeck = async (req, res) => {
             // SRS fields will use defaults
           });
           cardsToCreate.push(newCard);
+        } else {
+          skippedCards.push({
+            itemId: cardData.itemId,
+            itemTitle: cardData.itemTitle,
+            front: cardData.front?.substring(0, 50) + '...'
+          });
         }
       }
 
       if (cardsToCreate.length > 0) {
-        await Card.insertMany(cardsToCreate);
+        try {
+          await Card.insertMany(cardsToCreate, { ordered: false });
+          console.log(`✅ Imported ${cardsToCreate.length} cards for deck ${newDeck._id}`);
+        } catch (error) {
+          console.error(`❌ Error importing cards:`, error);
+          // Try to insert cards one by one to see which ones fail
+          let successCount = 0;
+          for (const card of cardsToCreate) {
+            try {
+              await card.save();
+              successCount++;
+            } catch (err) {
+              console.error(`Failed to import card for item ${card.item}:`, err.message);
+            }
+          }
+          console.log(`✅ Imported ${successCount}/${cardsToCreate.length} cards after retry`);
+        }
       }
+      
+      if (skippedCards.length > 0) {
+        console.warn(`⚠️ Skipped ${skippedCards.length} cards due to missing items:`, skippedCards);
+      }
+      
+      // Log summary
+      const totalCardsInFile = deckData.cards?.length || 0;
+      const importedCount = cardsToCreate.length;
+      const skippedCount = skippedCards.length;
+      console.log(`📊 Import summary: ${importedCount} imported, ${skippedCount} skipped, ${totalCardsInFile} total in file`);
     }
 
     // Return the new deck with tree structure
