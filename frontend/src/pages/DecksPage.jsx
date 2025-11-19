@@ -48,6 +48,7 @@ function DecksPage() {
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
   const [importingApkg, setImportingApkg] = useState(false);
+  const [deletingDeckId, setDeletingDeckId] = useState(null);
   const fileInputRef = useRef(null);
   const apkgInputRef = useRef(null);
   const navigate = useNavigate();
@@ -80,14 +81,18 @@ function DecksPage() {
     }
   };
 
-  const handleDeleteDeck = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this deck?')) return;
+  const handleDeleteDeck = async (e, id) => {
+    e.stopPropagation(); // Prevent triggering deck title click
+    if (!window.confirm('Are you sure you want to delete this deck? This action cannot be undone.')) return;
 
+    setDeletingDeckId(id);
     try {
       await deleteDeck(id);
       setDecks(decks.filter(deck => deck._id !== id));
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete deck');
+    } finally {
+      setDeletingDeckId(null);
     }
   };
 
@@ -233,10 +238,12 @@ function DecksPage() {
               {deck.title}
             </h3>
             <button
-              onClick={() => handleDeleteDeck(deck._id)}
-              className="danger-button"
+              onClick={(e) => handleDeleteDeck(e, deck._id)}
+              className="danger-button deck-delete-button"
+              disabled={deletingDeckId === deck._id}
+              title="Delete deck"
             >
-              Delete
+              {deletingDeckId === deck._id ? '⏳' : '🗑️'}
             </button>
           </div>
         ))}
