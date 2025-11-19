@@ -243,7 +243,16 @@ function DecksPage() {
               disabled={deletingDeckId === deck._id}
               title="Delete deck"
             >
-              {deletingDeckId === deck._id ? '⏳' : '🗑️'}
+              {deletingDeckId === deck._id ? (
+                <span className="delete-loading">⏳</span>
+              ) : (
+                <svg className="delete-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5.5 5.5C5.77614 5.5 6 5.72386 6 6V11C6 11.2761 5.77614 11.5 5.5 11.5C5.22386 11.5 5 11.2761 5 11V6C5 5.72386 5.22386 5.5 5.5 5.5Z" fill="currentColor"/>
+                  <path d="M8 6C8 5.72386 8.22386 5.5 8.5 5.5C8.77614 5.5 9 5.72386 9 6V11C9 11.2761 8.77614 11.5 8.5 11.5C8.22386 11.5 8 11.2761 8 11V6Z" fill="currentColor"/>
+                  <path d="M11 6C11 5.72386 10.7761 5.5 10.5 5.5C10.2239 5.5 10 5.72386 10 6V11C10 11.2761 10.2239 11.5 10.5 11.5C10.7761 11.5 11 11.2761 11 11V6Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M10.5 1C10.7761 1 11 1.22386 11 1.5V2H13.5C13.7761 2 14 2.22386 14 2.5C14 2.77614 13.7761 3 13.5 3H13V12.5C13 13.8807 11.8807 15 10.5 15H5.5C4.11929 15 3 13.8807 3 12.5V3H2.5C2.22386 3 2 2.77614 2 2.5C2 2.22386 2.22386 2 2.5 2H5V1.5C5 1.22386 5.22386 1 5.5 1H10.5ZM6 2V2.5H10V2H6ZM4 3V12.5C4 13.3284 4.67157 14 5.5 14H10.5C11.3284 14 12 13.3284 12 12.5V3H4Z" fill="currentColor"/>
+                </svg>
+              )}
             </button>
           </div>
         ))}
