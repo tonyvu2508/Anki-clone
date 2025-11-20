@@ -113,14 +113,24 @@
   text-overflow: ellipsis;
 }
 
+.deck-audio-status {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #00695c;
+}
+
 .deck-audio-actions {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+  width: 100%;
 }
 
-.deck-audio-player {
+.deck-audio-playback {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   width: 100%;
 }
 
@@ -209,6 +219,16 @@
   .deck-audio-actions .danger-button {
     width: 100%;
     justify-content: center;
+    text-align: center;
+  }
+
+  .deck-audio-playback {
+    flex-direction: column;
+  }
+
+  .deck-audio-playback .secondary-button,
+  .deck-audio-playback .danger-button {
+    width: 100%;
     text-align: center;
   }
 }

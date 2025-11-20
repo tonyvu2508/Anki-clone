@@ -5,6 +5,7 @@ import { getItems, createItem } from '../api/items';
 import TreeView from '../components/TreeView';
 import CardList from '../components/CardList';
 import { getToken } from '../utils/auth';
+import { useAudioPlayer } from '../context/AudioPlayerContext';
 import './DeckPage.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
@@ -39,6 +40,8 @@ function DeckPage() {
   const [generatingCards, setGeneratingCards] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const audioInputRef = useRef(null);
+  const { playDeckAudio, pauseAudio, resumeAudio, restartAudio, stopAudio, track, isPlaying } = useAudioPlayer();
+  const isDeckAudioActive = track.deckId === id;
 
   useEffect(() => {
     loadDeck();
@@ -187,6 +190,36 @@ function DeckPage() {
     return `${API_BASE}/decks/${id}/audio/stream${query ? `?${query}` : ''}`;
   }, [deck?.audio, id]);
 
+  const handlePlayBackground = () => {
+    if (!audioSrc) {
+      alert('No audio available for this deck');
+      return;
+    }
+    if (isDeckAudioActive) {
+      restartAudio();
+    } else {
+      playDeckAudio({
+        deckId: id,
+        title: deck?.title || 'Deck audio',
+        src: audioSrc,
+      });
+    }
+  };
+
+  const handlePauseBackground = () => {
+    pauseAudio();
+  };
+
+  const handleResumeBackground = () => {
+    resumeAudio();
+  };
+
+  const handleStopBackground = () => {
+    if (isDeckAudioActive) {
+      stopAudio();
+    }
+  };
+
   const isLeaf = selectedItem && (!selectedItem.children || selectedItem.children.length === 0);
 
   if (loading) {
@@ -269,44 +302,66 @@ function DeckPage() {
                     ? `Current file: ${formatFilename(deck.audio.filename)}`
                     : 'No audio uploaded for this deck'}
                 </p>
-              </div>
-              <div className="deck-audio-actions">
-                <label className="secondary-button deck-audio-upload">
-                  {uploadingAudio ? 'Uploading...' : deck?.audio ? 'Replace Audio' : 'Upload Audio'}
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    style={{ display: 'none' }}
-                    ref={audioInputRef}
-                    onChange={handleAudioFileChange}
-                    disabled={uploadingAudio}
-                  />
-                </label>
-                {deck?.audio && (
-                  <button
-                    type="button"
-                    className="danger-button deck-audio-remove"
-                    onClick={handleRemoveAudio}
-                    disabled={uploadingAudio}
-                  >
-                    Remove
-                  </button>
-                )}
+                <p className="deck-audio-status">
+                  {isDeckAudioActive
+                    ? isPlaying
+                      ? 'Playing in background'
+                      : 'Paused in background'
+                    : 'Not playing'}
+                </p>
               </div>
             </div>
-            {audioSrc && (
-              <audio
-                key={audioSrc}
-                controls
-                className="deck-audio-player"
+            <div className="deck-audio-playback">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handlePlayBackground}
+                disabled={!audioSrc}
               >
-                <source
-                  src={audioSrc}
-                  type={deck?.audio?.mimeType || 'audio/mpeg'}
+                {isDeckAudioActive ? 'Play from beginning' : 'Play in background'}
+              </button>
+              {isDeckAudioActive && (
+                <>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={isPlaying ? handlePauseBackground : handleResumeBackground}
+                  >
+                    {isPlaying ? 'Pause' : 'Resume'}
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-button"
+                    onClick={handleStopBackground}
+                  >
+                    Stop
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="deck-audio-actions">
+              <label className="secondary-button deck-audio-upload">
+                {uploadingAudio ? 'Uploading...' : deck?.audio ? 'Replace Audio' : 'Upload Audio'}
+                <input
+                  type="file"
+                  accept="audio/*"
+                  style={{ display: 'none' }}
+                  ref={audioInputRef}
+                  onChange={handleAudioFileChange}
+                  disabled={uploadingAudio}
                 />
-                Your browser does not support the audio element.
-              </audio>
-            )}
+              </label>
+              {deck?.audio && (
+                <button
+                  type="button"
+                  className="danger-button deck-audio-remove"
+                  onClick={handleRemoveAudio}
+                  disabled={uploadingAudio}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
 
           {showAddRootForm && (
