@@ -55,6 +55,15 @@ const removeDeckAudioFile = (deck, userId) => {
   }
 };
 
+const buildContentDisposition = (filename) => {
+  if (!filename) {
+    return 'inline';
+  }
+  const fallback = filename.replace(/[^\x20-\x7E]/g, '_') || 'deck-audio';
+  const encoded = encodeURIComponent(filename);
+  return `inline; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+};
+
 const getDecks = async (req, res) => {
   try {
     const decks = await Deck.find({ owner: req.userId }).sort({ createdAt: -1 });
@@ -280,6 +289,7 @@ const streamDeckAudio = async (req, res) => {
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
         'Content-Type': mimeType,
+        'Content-Disposition': buildContentDisposition(deck.audio.filename),
       });
       file.pipe(res);
     } else {
@@ -287,6 +297,7 @@ const streamDeckAudio = async (req, res) => {
         'Content-Length': fileSize,
         'Content-Type': mimeType,
         'Accept-Ranges': 'bytes',
+        'Content-Disposition': buildContentDisposition(deck.audio.filename),
       });
       fs.createReadStream(audioPath).pipe(res);
     }
