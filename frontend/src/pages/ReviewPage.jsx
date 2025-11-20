@@ -188,18 +188,22 @@ function ReviewPage() {
             }
           }}
         >
-          <div style={styles.cardSide}>
-            <h2>Front</h2>
-            <div style={styles.cardContent}>
-              <div style={styles.cardText}>{currentCard.front}</div>
-              {currentCard.frontMedia && currentCard.frontMedia.length > 0 && (
-                <MediaDisplay media={currentCard.frontMedia} side="front" />
-              )}
+          <div
+            style={{
+              ...styles.cardInner,
+              ...(showBack ? styles.cardInnerFlipped : {}),
+            }}
+          >
+            <div style={{ ...styles.cardFace, ...styles.cardFaceFront }}>
+              <h2>Front</h2>
+              <div style={styles.cardContent}>
+                <div style={styles.cardText}>{currentCard.front}</div>
+                {currentCard.frontMedia && currentCard.frontMedia.length > 0 && (
+                  <MediaDisplay media={currentCard.frontMedia} side="front" />
+                )}
+              </div>
             </div>
-          </div>
-
-          {showBack && (
-            <div style={styles.cardSide}>
+            <div style={{ ...styles.cardFace, ...styles.cardFaceBack }}>
               <h2>Back</h2>
               <div style={styles.cardContent}>
                 <div style={styles.cardText}>
@@ -212,7 +216,7 @@ function ReviewPage() {
                 )}
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
       <div style={styles.controlsContainer}>
@@ -300,27 +304,50 @@ const styles = {
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-    padding: '2rem',
     width: '100%',
     maxWidth: '600px',
-    minHeight: '400px',
+    minHeight: '420px',
+    perspective: '1200px',
+    cursor: 'pointer',
+  },
+  cardInner: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    transition: 'transform 0.6s',
+    transformStyle: 'preserve-3d',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    borderRadius: '12px',
+  },
+  cardInnerFlipped: {
+    transform: 'rotateY(180deg)',
+  },
+  cardFace: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backfaceVisibility: 'hidden',
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '2rem',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  },
+  cardFaceFront: {
+    transform: 'rotateY(0deg)',
+  },
+  cardFaceBack: {
+    transform: 'rotateY(180deg)',
+    backgroundColor: '#fefefe',
   },
   flipHint: {
     textAlign: 'center',
     fontSize: '1rem',
     color: '#666',
     fontStyle: 'italic',
-  },
-  cardSide: {
-    marginBottom: '1.5rem',
   },
   cardContent: {
     fontSize: '1.2rem',
