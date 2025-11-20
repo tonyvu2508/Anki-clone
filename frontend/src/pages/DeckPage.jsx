@@ -7,6 +7,18 @@ import CardList from '../components/CardList';
 import './DeckPage.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const formatFilename = (filename) => {
+  if (!filename) return '';
+  const maxLength = 40;
+  if (filename.length <= maxLength) return filename;
+  const parts = filename.split('.');
+  const extension = parts.length > 1 ? `.${parts.pop()}` : '';
+  const baseName = parts.join('.') || filename.replace(extension, '');
+  const visibleChars = maxLength - extension.length - 3;
+  const head = baseName.slice(0, Math.max(visibleChars - 10, 5));
+  const tail = baseName.slice(-7);
+  return `${head}...${tail}${extension}`;
+};
 
 function DeckPage() {
   const { id } = useParams();
@@ -236,7 +248,7 @@ function DeckPage() {
                   title={deck?.audio?.filename || 'No audio uploaded for this deck'}
                 >
                   {deck?.audio?.filename
-                    ? `Current file: ${deck.audio.filename}`
+                    ? `Current file: ${formatFilename(deck.audio.filename)}`
                     : 'No audio uploaded for this deck'}
                 </p>
               </div>
