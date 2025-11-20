@@ -60,8 +60,8 @@ function ReviewPage() {
     }
   };
 
-  const handleReveal = () => {
-    setShowBack(true);
+  const handleCardClick = () => {
+    setShowBack(prev => !prev);
   };
 
   const handleResult = async (quality) => {
@@ -176,7 +176,18 @@ function ReviewPage() {
       )}
 
       <div style={styles.cardContainer}>
-        <div style={styles.card}>
+        <div
+          style={styles.card}
+          onClick={handleCardClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCardClick();
+            }
+          }}
+        >
           <div style={styles.cardSide}>
             <h2>Front</h2>
             <div style={styles.cardContent}>
@@ -206,9 +217,7 @@ function ReviewPage() {
       </div>
       <div style={styles.controlsContainer}>
         {!showBack ? (
-          <button onClick={handleReveal} style={styles.revealButton}>
-            Show Answer
-          </button>
+          <div style={styles.flipHint}>Tap or click the card to reveal the answer</div>
         ) : (
           <div style={styles.qualityButtons}>
             <button onClick={() => handleResult(0)} style={styles.qualityButton0}>
@@ -301,6 +310,14 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  },
+  flipHint: {
+    textAlign: 'center',
+    fontSize: '1rem',
+    color: '#666',
+    fontStyle: 'italic',
   },
   cardSide: {
     marginBottom: '1.5rem',
@@ -316,16 +333,6 @@ const styles = {
   },
   cardText: {
     whiteSpace: 'pre-line', // Preserve line breaks and wrap text
-  },
-  revealButton: {
-    padding: '1rem 2rem',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '1.1rem',
-    cursor: 'pointer',
-    marginTop: 'auto',
   },
   qualityButtons: {
     display: 'flex',
