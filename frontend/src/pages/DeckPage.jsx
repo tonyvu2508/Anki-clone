@@ -229,9 +229,12 @@ function DeckPage() {
 
           <div className="deck-audio-panel">
             <div className="deck-audio-info">
-              <div>
+              <div className="deck-audio-details">
                 <h3>Deck Audio</h3>
-                <p className="deck-audio-meta">
+                <p
+                  className="deck-audio-meta"
+                  title={deck?.audio?.filename || 'No audio uploaded for this deck'}
+                >
                   {deck?.audio?.filename
                     ? `Current file: ${deck.audio.filename}`
                     : 'No audio uploaded for this deck'}
