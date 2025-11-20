@@ -65,8 +65,13 @@ export function AudioPlayerProvider({ children }) {
     if (!src) return;
     try {
       if (audioRef.current) {
-        if (audioRef.current.src !== src) {
-          audioRef.current.src = src;
+        const normalizedSrc = src.toString();
+        if (audioRef.current.src !== normalizedSrc) {
+          audioRef.current.pause();
+          audioRef.current.removeAttribute('src');
+          audioRef.current.load();
+          audioRef.current.src = normalizedSrc;
+          audioRef.current.load();
         }
         await audioRef.current.play();
         setTrack({
@@ -79,7 +84,11 @@ export function AudioPlayerProvider({ children }) {
       }
     } catch (err) {
       console.error('Failed to play audio', err);
-      setError(err?.message || 'Failed to play audio');
+      const mediaErrorCode = audioRef.current?.error?.code;
+      const reason = mediaErrorCode
+        ? `Media error code ${mediaErrorCode}`
+        : err?.message || 'Failed to play audio';
+      setError(reason);
     }
   }, []);
 
