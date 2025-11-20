@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDeck, togglePublicDeck, exportDeck, generateTreeCards } from '../api/decks';
+import { getDeck, togglePublicDeck, exportDeck, generateTreeCards, uploadDeckAudio, deleteDeckAudio } from '../api/decks';
 import { getItems, createItem } from '../api/items';
 import TreeView from '../components/TreeView';
 import CardList from '../components/CardList';
 import './DeckPage.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 function DeckPage() {
   const { id } = useParams();
@@ -17,6 +19,8 @@ function DeckPage() {
   const [showAddRootForm, setShowAddRootForm] = useState(false);
   const [newItemTitle, setNewItemTitle] = useState('');
   const [generatingCards, setGeneratingCards] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const audioInputRef = useRef(null);
 
   useEffect(() => {
     loadDeck();
@@ -114,6 +118,45 @@ function DeckPage() {
     }
   };
 
+  const handleAudioFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAudio(true);
+    try {
+      await uploadDeckAudio(id, file);
+      await loadDeck();
+      alert('Audio uploaded successfully');
+    } catch (err) {
+      alert(err.response?.data?.error || err.message || 'Failed to upload audio');
+    } finally {
+      setUploadingAudio(false);
+      if (audioInputRef.current) {
+        audioInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAudio = async () => {
+    if (!deck?.audio) return;
+    if (!window.confirm('Remove the current deck audio?')) return;
+
+    setUploadingAudio(true);
+    try {
+      await deleteDeckAudio(id);
+      await loadDeck();
+      alert('Audio removed');
+    } catch (err) {
+      alert(err.response?.data?.error || err.message || 'Failed to remove audio');
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
+
+  const audioSrc = deck?.audio?.url
+    ? (deck.audio.url.startsWith('http') ? deck.audio.url : `${API_URL}${deck.audio.url}`)
+    : null;
+
   const isLeaf = selectedItem && (!selectedItem.children || selectedItem.children.length === 0);
 
   if (loading) {
@@ -181,6 +224,52 @@ function DeckPage() {
               >
                 + Add Root Item
               </button>
+            )}
+          </div>
+
+          <div className="deck-audio-panel">
+            <div className="deck-audio-info">
+              <div>
+                <h3>Deck Audio</h3>
+                <p className="deck-audio-meta">
+                  {deck?.audio?.filename
+                    ? `Current file: ${deck.audio.filename}`
+                    : 'No audio uploaded for this deck'}
+                </p>
+              </div>
+              <div className="deck-audio-actions">
+                <label className="secondary-button deck-audio-upload">
+                  {uploadingAudio ? 'Uploading...' : deck?.audio ? 'Replace Audio' : 'Upload Audio'}
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    style={{ display: 'none' }}
+                    ref={audioInputRef}
+                    onChange={handleAudioFileChange}
+                    disabled={uploadingAudio}
+                  />
+                </label>
+                {deck?.audio && (
+                  <button
+                    type="button"
+                    className="danger-button deck-audio-remove"
+                    onClick={handleRemoveAudio}
+                    disabled={uploadingAudio}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            {audioSrc && (
+              <audio
+                key={audioSrc}
+                controls
+                className="deck-audio-player"
+              >
+                <source src={audioSrc} />
+                Your browser does not support the audio element.
+              </audio>
             )}
           </div>
 

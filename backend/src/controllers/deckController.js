@@ -2,6 +2,58 @@ const Deck = require('../models/Deck');
 const Item = require('../models/Item');
 const { buildTree } = require('../utils/tree');
 const { generateUniquePublicId } = require('../utils/idGenerator');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const mime = require('mime-types');
+
+const ensureDir = (dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+};
+
+const deckAudioStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const userId = req.userId;
+    const deckId = req.params.id || 'unknown';
+    const audioDir = path.join(__dirname, '../../media/deck-audio', userId.toString(), deckId.toString());
+    ensureDir(audioDir);
+    cb(null, audioDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname) || mime.extension(file.mimetype) || '.mp3';
+    cb(null, `${uniqueSuffix}${ext}`);
+  }
+});
+
+const deckAudioUpload = multer({
+  storage: deckAudioStorage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  fileFilter: (req, file, cb) => {
+    const mimeType = mime.lookup(file.originalname) || file.mimetype;
+    if (mimeType && mimeType.startsWith('audio/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed'));
+    }
+  }
+}).single('audioFile');
+
+const removeDeckAudioFile = (deck, userId) => {
+  if (!deck.audio || !deck.audio.storedFilename) return;
+  const audioPath = path.join(
+    __dirname,
+    '../../media/deck-audio',
+    userId.toString(),
+    deck._id.toString(),
+    deck.audio.storedFilename
+  );
+  if (fs.existsSync(audioPath)) {
+    fs.unlinkSync(audioPath);
+  }
+};
 
 const getDecks = async (req, res) => {
   try {
@@ -132,12 +184,70 @@ const deleteDeck = async (req, res) => {
   }
 };
 
+const uploadDeckAudio = async (req, res) => {
+  try {
+    const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
+    if (!deck) {
+      return res.status(404).json({ error: 'Deck not found' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No audio file uploaded' });
+    }
+
+    // Remove previous audio file if exists
+    removeDeckAudioFile(deck, req.userId);
+
+    const relativePath = path
+      .join('deck-audio', req.userId.toString(), deck._id.toString(), req.file.filename)
+      .replace(/\\/g, '/');
+    const fileUrl = `/api/media/${relativePath}`;
+
+    deck.audio = {
+      url: fileUrl,
+      filename: req.file.originalname,
+      storedFilename: req.file.filename,
+      size: req.file.size,
+      uploadedAt: new Date()
+    };
+
+    await deck.save();
+
+    res.json(deck);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const deleteDeckAudio = async (req, res) => {
+  try {
+    const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
+    if (!deck) {
+      return res.status(404).json({ error: 'Deck not found' });
+    }
+
+    if (deck.audio) {
+      removeDeckAudioFile(deck, req.userId);
+      deck.audio = undefined;
+      deck.markModified('audio');
+      await deck.save();
+    }
+
+    res.json({ message: 'Deck audio removed' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getDecks,
   createDeck,
   getDeck,
   updateDeck,
   deleteDeck,
-  togglePublicDeck
+  togglePublicDeck,
+  uploadDeckAudio,
+  deleteDeckAudio,
+  deckAudioUpload
 };
 

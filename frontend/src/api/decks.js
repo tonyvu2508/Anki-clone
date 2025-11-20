@@ -58,3 +58,17 @@ export const importDeck = (deckData) => {
 export const generateTreeCards = (deckId, itemId = null, separator = '\n') => {
   return client.post(`/decks/${deckId}/generate-tree-cards`, { itemId, separator });
 };
+
+export const uploadDeckAudio = (deckId, file) => {
+  const formData = new FormData();
+  formData.append('audioFile', file);
+  return client.post(`/decks/${deckId}/audio`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+export const deleteDeckAudio = (deckId) => {
+  return client.delete(`/decks/${deckId}/audio`);
+};

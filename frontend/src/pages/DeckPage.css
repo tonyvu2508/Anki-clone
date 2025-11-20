@@ -1,6 +1,7 @@
 .primary-button,
 .secondary-button,
-.toggle-button {
+.toggle-button,
+.danger-button {
   padding: 0.5rem 1rem;
   color: white;
   border: none;
@@ -14,6 +15,10 @@
 
 .secondary-button {
   background-color: #17a2b8;
+}
+
+.danger-button {
+  background-color: #dc3545;
 }
 
 .deck-page {
@@ -72,6 +77,42 @@
   align-items: center;
   margin-bottom: 1rem;
   gap: 0.5rem;
+}
+
+.deck-audio-panel {
+  background-color: #f8f9fa;
+  border: 1px dashed #cfd8dc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.deck-audio-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.deck-audio-meta {
+  margin: 0.25rem 0 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.deck-audio-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.deck-audio-player {
+  width: 100%;
 }
 
 .deck-add-root-form {
@@ -140,6 +181,22 @@
 
   .deck-input {
     width: 100%;
+  }
+
+  .deck-audio-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .deck-audio-actions {
+    width: 100%;
+  }
+
+  .deck-audio-actions .secondary-button,
+  .deck-audio-actions .danger-button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
   }
 }
 

@@ -7,7 +7,10 @@ const {
   getDeck,
   updateDeck,
   deleteDeck,
-  togglePublicDeck
+  togglePublicDeck,
+  uploadDeckAudio,
+  deleteDeckAudio,
+  deckAudioUpload
 } = require('../controllers/deckController');
 const {
   exportDeck,
@@ -31,6 +34,8 @@ router.post('/import', importDeck);
 // Specific routes must come before /:id routes
 router.get('/:id/export', exportDeck);
 router.post('/:id/toggle-public', togglePublicDeck);
+router.post('/:id/audio', deckAudioUpload, uploadDeckAudio);
+router.delete('/:id/audio', deleteDeckAudio);
 // Generate tree cards route - must be before generic /:id
 router.post('/:id/generate-tree-cards', generateTreeCards);
 // Generic routes
