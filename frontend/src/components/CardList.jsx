@@ -312,9 +312,8 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
 const styles = {
   container: {
     padding: '1rem',
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
     borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
   },
   header: {
     display: 'flex',
@@ -326,12 +325,12 @@ const styles = {
   },
   info: {
     fontSize: '0.85rem',
-    color: '#666',
+    color: 'var(--text-muted, #666)',
     fontStyle: 'italic',
   },
   addButton: {
     padding: '0.5rem 1rem',
-    backgroundColor: '#28a745',
+    backgroundColor: 'var(--success-color, #28a745)',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
@@ -343,19 +342,24 @@ const styles = {
     gap: '0.5rem',
     marginBottom: '1rem',
     padding: '1rem',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'var(--form-bg, #f8f9fa)',
     borderRadius: '4px',
+    border: '1px solid var(--border-color, #ddd)',
   },
   input: {
     padding: '0.5rem',
-    border: '1px solid #ddd',
+    border: '1px solid var(--border-color, #ddd)',
     borderRadius: '4px',
+    backgroundColor: 'var(--input-bg, #fff)',
+    color: 'var(--text-color, #212121)',
   },
   textarea: {
     padding: '0.5rem',
-    border: '1px solid #ddd',
+    border: '1px solid var(--border-color, #ddd)',
     borderRadius: '4px',
     resize: 'vertical',
+    backgroundColor: 'var(--input-bg, #fff)',
+    color: 'var(--text-color, #212121)',
   },
   formActions: {
     display: 'flex',
@@ -364,9 +368,9 @@ const styles = {
   mediaSection: {
     marginTop: '0.5rem',
     padding: '0.5rem',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--card-bg, #fff)',
     borderRadius: '4px',
-    border: '1px solid #ddd',
+    border: '1px solid var(--border-color, #ddd)',
   },
   label: {
     display: 'block',
@@ -385,8 +389,9 @@ const styles = {
   mediaItem: {
     position: 'relative',
     padding: '0.5rem',
-    border: '1px solid #eee',
+    border: '1px solid var(--border-color, #eee)',
     borderRadius: '4px',
+    backgroundColor: 'var(--card-bg, #fff)',
   },
   removeMediaButton: {
     position: 'absolute',
@@ -404,7 +409,7 @@ const styles = {
   },
   submitButton: {
     padding: '0.5rem 1rem',
-    backgroundColor: '#007bff',
+    backgroundColor: 'var(--primary-color, #007bff)',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
@@ -412,7 +417,7 @@ const styles = {
   },
   cancelButton: {
     padding: '0.5rem 1rem',
-    backgroundColor: '#6c757d',
+    backgroundColor: 'var(--text-muted, #6c757d)',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
@@ -424,12 +429,13 @@ const styles = {
     gap: '1rem',
   },
   card: {
-    border: '1px solid #ddd',
+    border: '1px solid var(--border-color, #ddd)',
     borderRadius: '4px',
     padding: '1rem',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'start',
+    backgroundColor: 'var(--card-bg, #fff)',
   },
   cardContent: {
     flex: 1,
@@ -441,6 +447,7 @@ const styles = {
     whiteSpace: 'pre-line', // Preserve line breaks and wrap text
     marginTop: '0.25rem',
     lineHeight: '1.8',
+    color: 'var(--text-color, #212121)',
   },
   tags: {
     display: 'flex',
@@ -449,10 +456,11 @@ const styles = {
     marginTop: '0.5rem',
   },
   tag: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: 'var(--tag-bg, #e3f2fd)',
     padding: '0.25rem 0.5rem',
     borderRadius: '4px',
     fontSize: '0.875rem',
+    color: 'var(--text-color, #212121)',
   },
   cardActions: {
     display: 'flex',
@@ -460,15 +468,15 @@ const styles = {
   },
   editButton: {
     padding: '0.5rem 1rem',
-    backgroundColor: '#ffc107',
-    color: 'black',
+    backgroundColor: 'var(--warning-color, #ffc107)',
+    color: 'var(--text-color, black)',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
   },
   deleteButton: {
     padding: '0.5rem 1rem',
-    backgroundColor: '#dc3545',
+    backgroundColor: 'var(--danger-color, #dc3545)',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
@@ -476,7 +484,7 @@ const styles = {
   },
   empty: {
     textAlign: 'center',
-    color: '#666',
+    color: 'var(--text-muted, #666)',
     padding: '2rem',
   },
   message: {
