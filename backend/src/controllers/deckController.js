@@ -28,6 +28,16 @@ const deckAudioStorage = multer.diskStorage({
   }
 });
 
+const decodeFilename = (name) => {
+  if (!name) return '';
+  try {
+    // Multer stores originalname as latin1 by default; convert to utf8
+    return Buffer.from(name, 'latin1').toString('utf8');
+  } catch (err) {
+    return name;
+  }
+};
+
 const deckAudioUpload = multer({
   storage: deckAudioStorage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
@@ -207,6 +217,8 @@ const uploadDeckAudio = async (req, res) => {
     // Remove previous audio file if exists
     removeDeckAudioFile(deck, req.userId);
 
+    const originalName = decodeFilename(req.file.originalname);
+
     const relativePath = path
       .join('deck-audio', req.userId.toString(), deck._id.toString(), req.file.filename)
       .replace(/\\/g, '/');
@@ -214,7 +226,7 @@ const uploadDeckAudio = async (req, res) => {
 
     deck.audio = {
       url: fileUrl,
-      filename: req.file.originalname,
+      filename: originalName,
       storedFilename: req.file.filename,
       size: req.file.size,
       mimeType: req.file.mimetype || mime.lookup(req.file.originalname) || 'audio/mpeg',
