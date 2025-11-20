@@ -263,8 +263,16 @@ const deleteDeckAudio = async (req, res) => {
 
 const streamDeckAudio = async (req, res) => {
   try {
-    const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
-    if (!deck || !deck.audio || !deck.audio.storedFilename) {
+    const deck = await Deck.findById(req.params.id);
+    if (!deck) {
+      return res.status(404).json({ error: 'Deck not found' });
+    }
+
+    if (deck.owner.toString() !== req.userId) {
+      return res.status(403).json({ error: 'Not authorized to access this deck' });
+    }
+
+    if (!deck.audio || !deck.audio.storedFilename) {
       return res.status(404).json({ error: 'Audio not found' });
     }
 
@@ -283,36 +291,42 @@ const streamDeckAudio = async (req, res) => {
     const stat = fs.statSync(audioPath);
     const fileSize = stat.size;
     const mimeType = deck.audio.mimeType || mime.lookup(deck.audio.filename) || 'audio/mpeg';
-    const range = req.headers.range;
+    const DEFAULT_CHUNK_SIZE = 1024 * 1024; // 1MB
+    let range = req.headers.range;
 
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
-      if (start >= fileSize || end >= fileSize) {
-        return res.status(416).json({ error: 'Requested range not satisfiable' });
-      }
-
-      const chunkSize = (end - start) + 1;
-      const file = fs.createReadStream(audioPath, { start, end });
-      res.writeHead(206, {
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunkSize,
-        'Content-Type': mimeType,
-        'Content-Disposition': buildContentDisposition(deck.audio.filename),
-      });
-      file.pipe(res);
-    } else {
-      res.writeHead(200, {
-        'Content-Length': fileSize,
-        'Content-Type': mimeType,
-        'Accept-Ranges': 'bytes',
-        'Content-Disposition': buildContentDisposition(deck.audio.filename),
-      });
-      fs.createReadStream(audioPath).pipe(res);
+    if (!range) {
+      const end = Math.min(DEFAULT_CHUNK_SIZE - 1, fileSize - 1);
+      range = `bytes=0-${end}`;
     }
+
+    const parts = range.replace(/bytes=/, '').split('-');
+    let start = parseInt(parts[0], 10);
+    let end = parts[1] ? parseInt(parts[1], 10) : Math.min(start + DEFAULT_CHUNK_SIZE - 1, fileSize - 1);
+
+    start = isNaN(start) ? 0 : start;
+    end = isNaN(end) ? Math.min(start + DEFAULT_CHUNK_SIZE - 1, fileSize - 1) : Math.min(end, fileSize - 1);
+
+    if (start >= fileSize || end >= fileSize || start > end) {
+      return res.status(416).json({ error: 'Requested range not satisfiable' });
+    }
+
+    const chunkSize = (end - start) + 1;
+    const file = fs.createReadStream(audioPath, { start, end });
+
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunkSize,
+      'Content-Type': mimeType,
+      'Content-Disposition': buildContentDisposition(deck.audio.filename),
+      'Cache-Control': 'no-cache',
+    });
+
+    file.on('open', () => file.pipe(res));
+    file.on('error', (err) => {
+      console.error('Stream error:', err);
+      res.status(500).end();
+    });
   } catch (error) {
     console.error('Error streaming deck audio:', error);
     res.status(500).json({ error: error.message });
