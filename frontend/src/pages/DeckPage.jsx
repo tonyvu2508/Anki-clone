@@ -246,7 +246,7 @@ function DeckPage() {
           <button
             onClick={handleTogglePublic}
             className="toggle-button"
-            style={{ backgroundColor: deck?.isPublic ? '#28a745' : '#6c757d' }}
+            style={{ backgroundColor: deck?.isPublic ? 'var(--success-color)' : 'var(--secondary-color)' }}
           >
             {deck?.isPublic ? '🔓 Public' : '🔒 Private'}
           </button>

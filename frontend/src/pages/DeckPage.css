@@ -3,28 +3,42 @@
 .toggle-button,
 .danger-button {
   padding: 0.5rem 1rem;
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .primary-button {
-  background-color: #007bff;
+  background-color: var(--primary-color);
+}
+
+.primary-button:hover {
+  background-color: var(--primary-color-hover);
 }
 
 .secondary-button {
-  background-color: #17a2b8;
+  background-color: var(--secondary-color);
+}
+
+.secondary-button:hover {
+  background-color: var(--secondary-color-hover);
 }
 
 .danger-button {
-  background-color: #dc3545;
+  background-color: var(--danger-color);
+}
+
+.danger-button:hover {
+  background-color: var(--danger-color-hover);
 }
 
 .deck-page {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+  color: var(--text-color);
 }
 
 .deck-header {
@@ -37,8 +51,8 @@
 
 .back-button {
   padding: 0.5rem 1rem;
-  background-color: #6c757d;
-  color: white;
+  background-color: var(--secondary-color);
+  color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -48,6 +62,7 @@
   flex: 1;
   min-width: 200px;
   margin: 0;
+  color: var(--text-color);
 }
 
 .deck-header-actions {
@@ -65,10 +80,11 @@
 
 .deck-tree-section,
 .deck-cards-section {
-  background-color: white;
+  background-color: var(--panel-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--shadow-color);
+  border: 1px solid var(--border-color);
 }
 
 .deck-tree-header {
@@ -80,8 +96,8 @@
 }
 
 .deck-audio-panel {
-  background-color: #f8f9fa;
-  border: 1px dashed #cfd8dc;
+  background-color: var(--accent-color);
+  border: 1px dashed var(--border-color);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -106,7 +122,7 @@
 
 .deck-audio-meta {
   margin: 0.25rem 0 0;
-  color: #555;
+  color: var(--text-muted);
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
@@ -116,7 +132,7 @@
 .deck-audio-status {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: #00695c;
+  color: var(--success-color);
 }
 
 .deck-audio-actions {
@@ -145,8 +161,10 @@
   flex: 1;
   min-width: 200px;
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
 }
 
 .deck-tree-container {
@@ -159,10 +177,10 @@
 }
 
 .error-banner {
-  color: red;
+  color: var(--danger-color);
   margin-bottom: 1rem;
   padding: 0.5rem;
-  background-color: #ffe6e6;
+  background-color: rgba(220, 53, 69, 0.15);
   border-radius: 4px;
 }
 

@@ -3,7 +3,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(18, 18, 18, 0.92);
+  background: var(--audio-bg);
   color: #fff;
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
   display: flex;

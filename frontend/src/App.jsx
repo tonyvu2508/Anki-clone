@@ -8,6 +8,8 @@ import ReviewPage from './pages/ReviewPage';
 import PublicDeckPage from './pages/PublicDeckPage';
 import { getToken } from './utils/auth';
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
+import { ThemeProvider } from './context/ThemeContext';
+import ThemeToggle from './components/ThemeToggle';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,8 +26,9 @@ function App() {
   }
 
   return (
-    <AudioPlayerProvider>
-      <Router>
+    <ThemeProvider>
+      <AudioPlayerProvider>
+        <Router>
       <Routes>
         <Route 
           path="/login" 
@@ -70,7 +73,9 @@ function App() {
         <Route path="/" element={<Navigate to={isAuthenticated ? "/decks" : "/login"} />} />
       </Routes>
     </Router>
-    </AudioPlayerProvider>
+        <ThemeToggle />
+      </AudioPlayerProvider>
+    </ThemeProvider>
   );
 }
 
