@@ -10,6 +10,7 @@ const deckSchema = new mongoose.Schema({
     filename: { type: String },
     storedFilename: { type: String },
     size: { type: Number },
+    mimeType: { type: String },
     uploadedAt: { type: Date }
   },
   createdAt: { type: Date, default: Date.now }

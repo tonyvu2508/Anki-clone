@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDeck, togglePublicDeck, exportDeck, generateTreeCards, uploadDeckAudio, deleteDeckAudio } from '../api/decks';
 import { getItems, createItem } from '../api/items';
 import TreeView from '../components/TreeView';
 import CardList from '../components/CardList';
+import { getToken } from '../utils/auth';
 import './DeckPage.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
@@ -165,9 +166,21 @@ function DeckPage() {
     }
   };
 
-  const audioSrc = deck?.audio?.url
-    ? (deck.audio.url.startsWith('http') ? deck.audio.url : `${API_URL}${deck.audio.url}`)
-    : null;
+  const audioSrc = useMemo(() => {
+    if (!deck?.audio) return null;
+    const params = new URLSearchParams();
+    const token = getToken();
+    if (token) {
+      params.append('token', token);
+    }
+    if (deck.audio.uploadedAt) {
+      params.append('v', new Date(deck.audio.uploadedAt).getTime());
+    } else if (deck.audio.storedFilename) {
+      params.append('v', deck.audio.storedFilename);
+    }
+    const query = params.toString();
+    return `${API_URL}/api/decks/${id}/audio/stream${query ? `?${query}` : ''}`;
+  }, [deck?.audio, id]);
 
   const isLeaf = selectedItem && (!selectedItem.children || selectedItem.children.length === 0);
 

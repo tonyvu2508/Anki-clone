@@ -208,6 +208,7 @@ const uploadDeckAudio = async (req, res) => {
       filename: req.file.originalname,
       storedFilename: req.file.filename,
       size: req.file.size,
+      mimeType: req.file.mimetype || mime.lookup(req.file.originalname) || 'audio/mpeg',
       uploadedAt: new Date()
     };
 
@@ -239,6 +240,62 @@ const deleteDeckAudio = async (req, res) => {
   }
 };
 
+const streamDeckAudio = async (req, res) => {
+  try {
+    const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
+    if (!deck || !deck.audio || !deck.audio.storedFilename) {
+      return res.status(404).json({ error: 'Audio not found' });
+    }
+
+    const audioPath = path.join(
+      __dirname,
+      '../../media/deck-audio',
+      deck.owner.toString(),
+      deck._id.toString(),
+      deck.audio.storedFilename
+    );
+
+    if (!fs.existsSync(audioPath)) {
+      return res.status(404).json({ error: 'Audio file missing' });
+    }
+
+    const stat = fs.statSync(audioPath);
+    const fileSize = stat.size;
+    const mimeType = deck.audio.mimeType || mime.lookup(deck.audio.filename) || 'audio/mpeg';
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize || end >= fileSize) {
+        return res.status(416).json({ error: 'Requested range not satisfiable' });
+      }
+
+      const chunkSize = (end - start) + 1;
+      const file = fs.createReadStream(audioPath, { start, end });
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': mimeType,
+      });
+      file.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': mimeType,
+        'Accept-Ranges': 'bytes',
+      });
+      fs.createReadStream(audioPath).pipe(res);
+    }
+  } catch (error) {
+    console.error('Error streaming deck audio:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getDecks,
   createDeck,
@@ -248,6 +305,7 @@ module.exports = {
   togglePublicDeck,
   uploadDeckAudio,
   deleteDeckAudio,
+  streamDeckAudio,
   deckAudioUpload
 };
 

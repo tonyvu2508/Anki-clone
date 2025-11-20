@@ -10,6 +10,7 @@ const {
   togglePublicDeck,
   uploadDeckAudio,
   deleteDeckAudio,
+  streamDeckAudio,
   deckAudioUpload
 } = require('../controllers/deckController');
 const {
@@ -36,6 +37,7 @@ router.get('/:id/export', exportDeck);
 router.post('/:id/toggle-public', togglePublicDeck);
 router.post('/:id/audio', deckAudioUpload, uploadDeckAudio);
 router.delete('/:id/audio', deleteDeckAudio);
+router.get('/:id/audio/stream', streamDeckAudio);
 // Generate tree cards route - must be before generic /:id
 router.post('/:id/generate-tree-cards', generateTreeCards);
 // Generic routes
