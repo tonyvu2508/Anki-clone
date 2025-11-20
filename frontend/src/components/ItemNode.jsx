@@ -101,7 +101,7 @@ function ItemNode({ item, deckId, level, onItemSelect, selectedItemId, onRefresh
       <div
         style={{
           ...styles.itemRow,
-          backgroundColor: isSelected ? '#e3f2fd' : 'transparent',
+          backgroundColor: isSelected ? 'var(--selected-bg, #e3f2fd)' : 'transparent',
           paddingLeft: `${level * 20 + 10}px`,
         }}
       >
