@@ -44,6 +44,18 @@ export function AudioPlayerProvider({ children }) {
     };
   }, [audioElement]);
 
+  useEffect(() => {
+    const offset = track.isVisible ? '120px' : '0px';
+    const value = `calc(${offset} + env(safe-area-inset-bottom, 0px))`;
+    document.documentElement.style.setProperty('--global-audio-offset', value);
+
+    return () => {
+      if (!track.isVisible) {
+        document.documentElement.style.removeProperty('--global-audio-offset');
+      }
+    };
+  }, [track.isVisible]);
+
   const setAudioRef = useCallback((node) => {
     audioRef.current = node || null;
     setAudioElement(node || null);

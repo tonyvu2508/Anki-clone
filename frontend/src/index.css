@@ -11,6 +11,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f5f5f5;
+  padding-bottom: var(--global-audio-offset, 0px);
+  transition: padding-bottom 0.25s ease;
 }
 
 code {
