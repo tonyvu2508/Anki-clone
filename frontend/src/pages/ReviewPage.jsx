@@ -286,6 +286,7 @@ const styles = {
     marginBottom: '1rem',
     fontSize: '0.9rem',
     color: '#1976d2',
+    alignSelf: 'stretch',
   },
   backButton: {
     padding: '0.5rem 1rem',
@@ -334,7 +335,7 @@ const styles = {
     padding: '2rem',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   cardFaceFront: {
     transform: 'rotateY(0deg)',
@@ -356,7 +357,11 @@ const styles = {
     padding: '1rem',
     backgroundColor: '#f8f9fa',
     borderRadius: '4px',
-    minHeight: '100px',
+    minHeight: '200px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    overflowY: 'auto',
   },
   cardText: {
     whiteSpace: 'pre-line', // Preserve line breaks and wrap text
