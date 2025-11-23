@@ -6,6 +6,8 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const mime = require('mime-types');
+const ffmpeg = require('fluent-ffmpeg');
+const { promisify } = require('util');
 
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
@@ -216,6 +218,25 @@ const deleteDeck = async (req, res) => {
   }
 };
 
+// Helper function to convert audio to MP3
+const convertToMP3 = (inputPath, outputPath) => {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .toFormat('mp3')
+      .audioCodec('libmp3lame')
+      .audioBitrate(192)
+      .on('end', () => {
+        console.log('Audio conversion completed');
+        resolve();
+      })
+      .on('error', (err) => {
+        console.error('Error converting audio:', err);
+        reject(err);
+      })
+      .save(outputPath);
+  });
+};
+
 const uploadDeckAudio = async (req, res) => {
   try {
     const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
@@ -228,18 +249,79 @@ const uploadDeckAudio = async (req, res) => {
     }
 
     const originalName = decodeFilename(req.file.originalname);
+    const originalExt = path.extname(originalName).toLowerCase();
+    const uploadedFilePath = req.file.path;
+    let finalFilename = req.file.filename;
+    let finalPath = uploadedFilePath;
+    let fileSize = req.file.size;
+    let needsConversion = originalExt !== '.mp3';
+
+    // Convert to MP3 if not already MP3
+    if (needsConversion) {
+      console.log(`Converting audio from ${originalExt} to MP3...`);
+      const mp3Filename = path.basename(req.file.filename, originalExt) + '.mp3';
+      const mp3Path = path.join(path.dirname(uploadedFilePath), mp3Filename);
+      
+      try {
+        await convertToMP3(uploadedFilePath, mp3Path);
+        
+        // Verify converted file exists
+        if (!fs.existsSync(mp3Path)) {
+          throw new Error('Converted file was not created');
+        }
+        
+        // Get file size of converted file
+        const stat = fs.statSync(mp3Path);
+        fileSize = stat.size;
+        
+        // Delete original file
+        if (fs.existsSync(uploadedFilePath)) {
+          fs.unlinkSync(uploadedFilePath);
+          console.log('Original file deleted');
+        }
+        
+        finalFilename = mp3Filename;
+        finalPath = mp3Path;
+        needsConversion = false; // Mark as successfully converted
+        console.log('Audio converted successfully to MP3');
+      } catch (convertError) {
+        console.error('Failed to convert audio:', convertError);
+        // If conversion fails, keep original file but log warning
+        console.warn('Keeping original file format due to conversion failure');
+        // Clean up any partial conversion file
+        if (fs.existsSync(mp3Path)) {
+          try {
+            fs.unlinkSync(mp3Path);
+          } catch (unlinkError) {
+            console.error('Error cleaning up failed conversion:', unlinkError);
+          }
+        }
+        // Continue with original file
+      }
+    }
 
     const relativePath = path
-      .join('deck-audio', req.userId.toString(), deck._id.toString(), req.file.filename)
+      .join('deck-audio', req.userId.toString(), deck._id.toString(), finalFilename)
       .replace(/\\/g, '/');
     const fileUrl = `/api/media/${relativePath}`;
 
+    // Update filename extension if converted
+    const displayFilename = !needsConversion && originalExt !== '.mp3'
+      ? path.basename(originalName, originalExt) + '.mp3'
+      : originalName;
+
+    // Determine MIME type based on final file
+    const finalExt = path.extname(finalFilename).toLowerCase();
+    const finalMimeType = finalExt === '.mp3' 
+      ? 'audio/mpeg' 
+      : (req.file.mimetype || mime.lookup(originalName) || 'audio/mpeg');
+
     const newAudio = {
       url: fileUrl,
-      filename: originalName,
-      storedFilename: req.file.filename,
-      size: req.file.size,
-      mimeType: req.file.mimetype || mime.lookup(req.file.originalname) || 'audio/mpeg',
+      filename: displayFilename,
+      storedFilename: finalFilename,
+      size: fileSize,
+      mimeType: finalMimeType,
       uploadedAt: new Date()
     };
 
@@ -251,6 +333,15 @@ const uploadDeckAudio = async (req, res) => {
 
     res.json(deck);
   } catch (error) {
+    console.error('Error uploading deck audio:', error);
+    // Clean up uploaded file on error
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('Error cleaning up file:', unlinkError);
+      }
+    }
     res.status(500).json({ error: error.message });
   }
 };
