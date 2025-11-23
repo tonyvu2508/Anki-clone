@@ -40,7 +40,7 @@ function DeckPage() {
   const [generatingCards, setGeneratingCards] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const audioInputRef = useRef(null);
-  const { playDeckAudio, pauseAudio, resumeAudio, restartAudio, stopAudio, track, isPlaying } = useAudioPlayer();
+  const { playDeckAudio, restartAudio, track, isPlaying } = useAudioPlayer();
   const isDeckAudioActive = track.deckId === id;
 
   useEffect(() => {
@@ -207,20 +207,6 @@ function DeckPage() {
     }
   };
 
-  const handlePauseBackground = () => {
-    pauseAudio();
-  };
-
-  const handleResumeBackground = () => {
-    resumeAudio();
-  };
-
-  const handleStopBackground = () => {
-    if (isDeckAudioActive) {
-      stopAudio();
-    }
-  };
-
   const isLeaf = selectedItem && (!selectedItem.children || selectedItem.children.length === 0);
 
   if (loading) {
@@ -312,37 +298,18 @@ function DeckPage() {
                 </p>
               </div>
             </div>
-            <div className="deck-audio-playback">
+            <div className="deck-audio-actions">
               <button
                 type="button"
-                className="secondary-button"
+                className="icon-button deck-audio-play"
                 onClick={handlePlayBackground}
                 disabled={!audioSrc}
+                title={isDeckAudioActive ? 'Play from beginning' : 'Play in background'}
               >
-                {isDeckAudioActive ? 'Play from beginning' : 'Play in background'}
+                ▶️
               </button>
-              {isDeckAudioActive && (
-                <>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={isPlaying ? handlePauseBackground : handleResumeBackground}
-                  >
-                    {isPlaying ? 'Pause' : 'Resume'}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger-button"
-                    onClick={handleStopBackground}
-                  >
-                    Stop
-                  </button>
-                </>
-              )}
-            </div>
-            <div className="deck-audio-actions">
-              <label className="secondary-button deck-audio-upload">
-                {uploadingAudio ? 'Uploading...' : deck?.audio ? 'Replace Audio' : 'Upload Audio'}
+              <label className="icon-button deck-audio-upload" title={deck?.audio ? 'Replace Audio' : 'Upload Audio'}>
+                {uploadingAudio ? '⏳' : '📤'}
                 <input
                   type="file"
                   accept="audio/*"
@@ -355,11 +322,12 @@ function DeckPage() {
               {deck?.audio && (
                 <button
                   type="button"
-                  className="danger-button deck-audio-remove"
+                  className="icon-button deck-audio-remove"
                   onClick={handleRemoveAudio}
                   disabled={uploadingAudio}
+                  title="Remove audio"
                 >
-                  Remove
+                  🗑️
                 </button>
               )}
             </div>

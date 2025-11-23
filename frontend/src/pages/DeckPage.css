@@ -143,11 +143,50 @@
   width: 100%;
 }
 
-.deck-audio-playback {
+.icon-button {
+  padding: 0.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  font-size: 1.2rem;
+  background-color: var(--secondary-color);
+  color: #fff;
+}
+
+.icon-button:hover:not(:disabled) {
+  background-color: var(--secondary-color-hover);
+  transform: scale(1.05);
+}
+
+.icon-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deck-audio-play {
+  background-color: var(--primary-color);
+}
+
+.deck-audio-play:hover:not(:disabled) {
+  background-color: var(--primary-color-hover);
+}
+
+.deck-audio-remove {
+  background-color: var(--danger-color);
+}
+
+.deck-audio-remove:hover:not(:disabled) {
+  background-color: var(--danger-color-hover);
 }
 
 .deck-add-root-form {
@@ -231,23 +270,11 @@
 
   .deck-audio-actions {
     width: 100%;
-  }
-
-  .deck-audio-actions .secondary-button,
-  .deck-audio-actions .danger-button {
-    width: 100%;
     justify-content: center;
-    text-align: center;
   }
 
-  .deck-audio-playback {
-    flex-direction: column;
-  }
-
-  .deck-audio-playback .secondary-button,
-  .deck-audio-playback .danger-button {
-    width: 100%;
-    text-align: center;
+  .icon-button {
+    flex: 0 0 auto;
   }
 }
 
