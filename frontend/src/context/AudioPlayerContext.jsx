@@ -15,6 +15,7 @@ export function AudioPlayerProvider({ children }) {
   const [audioElement, setAudioElement] = useState(null);
   const [track, setTrack] = useState(trackDefaults);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -63,25 +64,94 @@ export function AudioPlayerProvider({ children }) {
 
   const playDeckAudio = useCallback(async ({ deckId, title, src }) => {
     if (!src) return;
+    if (!audioRef.current) return;
+
     try {
-      if (audioRef.current) {
-        const normalizedSrc = src.toString();
-        if (audioRef.current.src !== normalizedSrc) {
-          audioRef.current.pause();
-          audioRef.current.removeAttribute('src');
-          audioRef.current.load();
-          audioRef.current.src = normalizedSrc;
-          audioRef.current.load();
-        }
-        await audioRef.current.play();
-        setTrack({
-          deckId,
-          title,
-          src,
-          isVisible: true,
+      setIsLoading(true);
+      setError('');
+      
+      const normalizedSrc = src.toString();
+      const audio = audioRef.current;
+      
+      // If it's a different source, reset and load new source
+      if (audio.src !== normalizedSrc) {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        audio.src = normalizedSrc;
+        
+        // Wait for audio to be ready before playing
+        await new Promise((resolve, reject) => {
+          // Check if already ready
+          if (audio.readyState >= 2) { // HAVE_CURRENT_DATA
+            resolve();
+            return;
+          }
+          
+          const handleCanPlay = () => {
+            cleanup();
+            resolve();
+          };
+          
+          const handleError = (e) => {
+            cleanup();
+            reject(new Error('Failed to load audio'));
+          };
+          
+          // Timeout after 10 seconds
+          const timeout = setTimeout(() => {
+            cleanup();
+            // Try to resolve anyway - sometimes canplay doesn't fire but audio is playable
+            if (audio.readyState >= 1) { // HAVE_METADATA
+              resolve();
+            } else {
+              reject(new Error('Audio loading timeout'));
+            }
+          }, 10000);
+          
+          const cleanup = () => {
+            audio.removeEventListener('canplay', handleCanPlay);
+            audio.removeEventListener('error', handleError);
+            clearTimeout(timeout);
+          };
+          
+          audio.addEventListener('canplay', handleCanPlay, { once: true });
+          audio.addEventListener('error', handleError, { once: true });
+          audio.load();
         });
-        setError('');
+      } else {
+        // Same source - check if ready
+        if (audio.readyState < 2) {
+          // Wait a bit for it to be ready
+          await new Promise((resolve) => {
+            if (audio.readyState >= 2) {
+              resolve();
+              return;
+            }
+            const handleCanPlay = () => {
+              audio.removeEventListener('canplay', handleCanPlay);
+              resolve();
+            };
+            audio.addEventListener('canplay', handleCanPlay, { once: true });
+            // Don't wait too long if same source
+            setTimeout(() => {
+              audio.removeEventListener('canplay', handleCanPlay);
+              resolve();
+            }, 2000);
+          });
+        }
       }
+      
+      // Now play
+      await audio.play();
+      
+      setTrack({
+        deckId,
+        title,
+        src,
+        isVisible: true,
+      });
+      setError('');
     } catch (err) {
       console.error('Failed to play audio', err);
       const mediaErrorCode = audioRef.current?.error?.code;
@@ -89,6 +159,8 @@ export function AudioPlayerProvider({ children }) {
         ? `Media error code ${mediaErrorCode}`
         : err?.message || 'Failed to play audio';
       setError(reason);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -130,6 +202,7 @@ export function AudioPlayerProvider({ children }) {
     () => ({
       track,
       isPlaying,
+      isLoading,
       error,
       playDeckAudio,
       pauseAudio,
@@ -138,7 +211,7 @@ export function AudioPlayerProvider({ children }) {
       stopAudio,
       audioRef,
     }),
-    [track, isPlaying, error, playDeckAudio, pauseAudio, resumeAudio, restartAudio, stopAudio]
+    [track, isPlaying, isLoading, error, playDeckAudio, pauseAudio, resumeAudio, restartAudio, stopAudio]
   );
 
   return (
@@ -147,6 +220,7 @@ export function AudioPlayerProvider({ children }) {
       <div className={`global-audio-player ${track.isVisible ? 'visible' : ''}`}>
         <div className="global-audio-info">
           <div className="global-audio-title">{track.title || 'Deck audio'}</div>
+          {isLoading && <div className="global-audio-loading">Loading audio...</div>}
           {error && <div className="global-audio-error">{error}</div>}
         </div>
         <div className="global-audio-controls">

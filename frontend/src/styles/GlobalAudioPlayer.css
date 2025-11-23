@@ -35,6 +35,12 @@
   text-overflow: ellipsis;
 }
 
+.global-audio-loading {
+  color: #a0d2ff;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .global-audio-error {
   color: #ffb4a2;
   font-size: 0.85rem;
