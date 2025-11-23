@@ -39,8 +39,9 @@ function DeckPage() {
   const [newItemTitle, setNewItemTitle] = useState('');
   const [generatingCards, setGeneratingCards] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [showAudioList, setShowAudioList] = useState(false);
   const audioInputRef = useRef(null);
-  const { playDeckAudio, restartAudio, track, isPlaying } = useAudioPlayer();
+  const { playDeckAudio, pauseAudio, resumeAudio, track, isPlaying } = useAudioPlayer();
   const isDeckAudioActive = track.deckId === id;
 
   useEffect(() => {
@@ -158,13 +159,12 @@ function DeckPage() {
     }
   };
 
-  const handleRemoveAudio = async () => {
-    if (!deck?.audio) return;
-    if (!window.confirm('Remove the current deck audio?')) return;
+  const handleRemoveAudio = async (audioId) => {
+    if (!window.confirm('Remove this audio?')) return;
 
     setUploadingAudio(true);
     try {
-      await deleteDeckAudio(id);
+      await deleteDeckAudio(id, audioId);
       await loadDeck();
       alert('Audio removed');
     } catch (err) {
@@ -174,37 +174,50 @@ function DeckPage() {
     }
   };
 
-  const audioSrc = useMemo(() => {
-    if (!deck?.audio) return null;
+  const getAudioSrc = (audio) => {
+    if (!audio) return null;
     const params = new URLSearchParams();
     const token = getToken();
     if (token) {
       params.append('token', token);
     }
-    if (deck.audio.uploadedAt) {
-      params.append('v', new Date(deck.audio.uploadedAt).getTime());
-    } else if (deck.audio.storedFilename) {
-      params.append('v', deck.audio.storedFilename);
+    if (audio.uploadedAt) {
+      params.append('v', new Date(audio.uploadedAt).getTime());
+    } else if (audio.storedFilename) {
+      params.append('v', audio.storedFilename);
     }
     const query = params.toString();
-    return `${API_BASE}/decks/${id}/audio/stream${query ? `?${query}` : ''}`;
-  }, [deck?.audio, id]);
+    return `${API_BASE}/decks/${id}/audio/${audio._id}/stream${query ? `?${query}` : ''}`;
+  };
 
-  const handlePlayBackground = () => {
-    if (!audioSrc) {
-      alert('No audio available for this deck');
-      return;
-    }
-    if (isDeckAudioActive) {
-      restartAudio();
+  const handlePlayPauseAudio = (audio) => {
+    const audioSrc = getAudioSrc(audio);
+    if (!audioSrc) return;
+
+    const isThisAudioActive = isDeckAudioActive && track.src === audioSrc;
+    
+    if (isThisAudioActive) {
+      // Toggle play/pause for current audio
+      if (isPlaying) {
+        pauseAudio();
+      } else {
+        resumeAudio();
+      }
     } else {
+      // Play new audio
       playDeckAudio({
         deckId: id,
-        title: deck?.title || 'Deck audio',
+        title: `${deck?.title || 'Deck'} - ${formatFilename(audio.filename)}`,
         src: audioSrc,
-        mimeType: deck?.audio?.mimeType || 'audio/mpeg',
+        mimeType: audio.mimeType || 'audio/mpeg',
       });
     }
+  };
+
+  const isAudioActive = (audio) => {
+    if (!audio || !isDeckAudioActive) return false;
+    const audioSrc = getAudioSrc(audio);
+    return track.src === audioSrc;
   };
 
   const isLeaf = selectedItem && (!selectedItem.children || selectedItem.children.length === 0);
@@ -278,59 +291,75 @@ function DeckPage() {
           </div>
 
           <div className="deck-audio-panel">
-            <div className="deck-audio-info">
-              <div className="deck-audio-details">
-                <h3>Deck Audio</h3>
-                <p
-                  className="deck-audio-meta"
-                  title={deck?.audio?.filename || 'No audio uploaded for this deck'}
-                >
-                  {deck?.audio?.filename
-                    ? `Current file: ${formatFilename(deck.audio.filename)}`
-                    : 'No audio uploaded for this deck'}
-                </p>
-                <p className="deck-audio-status">
-                  {isDeckAudioActive
-                    ? isPlaying
-                      ? 'Playing in background'
-                      : 'Paused in background'
-                    : 'Not playing'}
-                </p>
-              </div>
-            </div>
-            <div className="deck-audio-actions">
-              <button
-                type="button"
-                className="icon-button deck-audio-play"
-                onClick={handlePlayBackground}
-                disabled={!audioSrc}
-                title={isDeckAudioActive ? 'Play from beginning' : 'Play in background'}
-              >
-                ▶️
-              </button>
-              <label className="icon-button deck-audio-upload" title={deck?.audio ? 'Replace Audio' : 'Upload Audio'}>
-                {uploadingAudio ? '⏳' : '📤'}
-                <input
-                  type="file"
-                  accept="audio/*"
-                  style={{ display: 'none' }}
-                  ref={audioInputRef}
-                  onChange={handleAudioFileChange}
-                  disabled={uploadingAudio}
-                />
-              </label>
-              {deck?.audio && (
+            <div className="deck-audio-header">
+              <h3>Deck Audio</h3>
+              <div className="deck-audio-actions">
                 <button
                   type="button"
-                  className="icon-button deck-audio-remove"
-                  onClick={handleRemoveAudio}
-                  disabled={uploadingAudio}
-                  title="Remove audio"
+                  className="icon-button deck-audio-toggle"
+                  onClick={() => setShowAudioList(!showAudioList)}
+                  title={showAudioList ? 'Hide audio list' : 'Show audio list'}
                 >
-                  🗑️
+                  {showAudioList ? '▼' : '▶'}
                 </button>
-              )}
+                <label className="icon-button deck-audio-upload" title="Upload Audio">
+                  {uploadingAudio ? '⏳' : '📤'}
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    style={{ display: 'none' }}
+                    ref={audioInputRef}
+                    onChange={handleAudioFileChange}
+                    disabled={uploadingAudio}
+                  />
+                </label>
+              </div>
             </div>
+            {showAudioList && (
+              <div className="deck-audio-list">
+                {deck?.audios && deck.audios.length > 0 ? (
+                  deck.audios.map((audio) => {
+                    const isActive = isAudioActive(audio);
+                    const isCurrentlyPlaying = isActive && isPlaying;
+                    return (
+                      <div key={audio._id} className="deck-audio-item">
+                        <div className="deck-audio-item-info">
+                          <p className="deck-audio-item-name" title={audio.filename}>
+                            {formatFilename(audio.filename)}
+                          </p>
+                          {isActive && (
+                            <p className="deck-audio-item-status">
+                              {isCurrentlyPlaying ? 'Playing' : 'Paused'}
+                            </p>
+                          )}
+                        </div>
+                        <div className="deck-audio-item-actions">
+                          <button
+                            type="button"
+                            className="icon-button deck-audio-play-pause"
+                            onClick={() => handlePlayPauseAudio(audio)}
+                            title={isCurrentlyPlaying ? 'Pause' : 'Play'}
+                          >
+                            {isCurrentlyPlaying ? '⏸️' : '▶️'}
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button deck-audio-remove"
+                            onClick={() => handleRemoveAudio(audio._id)}
+                            disabled={uploadingAudio}
+                            title="Remove audio"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="deck-audio-empty">No audio uploaded for this deck</p>
+                )}
+              </div>
+            )}
           </div>
 
           {showAddRootForm && (

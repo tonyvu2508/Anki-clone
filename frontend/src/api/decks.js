@@ -69,6 +69,6 @@ export const uploadDeckAudio = (deckId, file) => {
   });
 };
 
-export const deleteDeckAudio = (deckId) => {
-  return client.delete(`/decks/${deckId}/audio`);
+export const deleteDeckAudio = (deckId, audioId) => {
+  return client.delete(`/decks/${deckId}/audio/${audioId}`);
 };

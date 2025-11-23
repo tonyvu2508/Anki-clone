@@ -5,14 +5,15 @@ const deckSchema = new mongoose.Schema({
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   publicId: { type: String, unique: true, sparse: true }, // 6-character unique ID
   isPublic: { type: Boolean, default: false },
-  audio: {
+  audios: [{
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
     url: { type: String },
     filename: { type: String },
     storedFilename: { type: String },
     size: { type: Number },
     mimeType: { type: String },
     uploadedAt: { type: Date }
-  },
+  }],
   createdAt: { type: Date, default: Date.now }
 });
 

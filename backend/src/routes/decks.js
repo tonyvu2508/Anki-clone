@@ -36,8 +36,8 @@ router.post('/import', importDeck);
 router.get('/:id/export', exportDeck);
 router.post('/:id/toggle-public', togglePublicDeck);
 router.post('/:id/audio', deckAudioUpload, uploadDeckAudio);
-router.delete('/:id/audio', deleteDeckAudio);
-router.get('/:id/audio/stream', streamDeckAudio);
+router.delete('/:id/audio/:audioId', deleteDeckAudio);
+router.get('/:id/audio/:audioId/stream', streamDeckAudio);
 // Generate tree cards route - must be before generic /:id
 router.post('/:id/generate-tree-cards', generateTreeCards);
 // Generic routes

@@ -51,14 +51,14 @@ const deckAudioUpload = multer({
   }
 }).single('audioFile');
 
-const removeDeckAudioFile = (deck, userId) => {
-  if (!deck.audio || !deck.audio.storedFilename) return;
+const removeDeckAudioFile = (deck, userId, storedFilename) => {
+  if (!storedFilename) return;
   const audioPath = path.join(
     __dirname,
     '../../media/deck-audio',
     userId.toString(),
     deck._id.toString(),
-    deck.audio.storedFilename
+    storedFilename
   );
   if (fs.existsSync(audioPath)) {
     fs.unlinkSync(audioPath);
@@ -103,6 +103,14 @@ const getDeck = async (req, res) => {
     const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
     if (!deck) {
       return res.status(404).json({ error: 'Deck not found' });
+    }
+
+    // Migrate old audio format to audios array
+    if (deck.audio && (!deck.audios || deck.audios.length === 0)) {
+      deck.audios = [deck.audio];
+      deck.audio = undefined;
+      deck.markModified('audios');
+      await deck.save();
     }
 
     // Get all items for this deck and build tree
@@ -214,9 +222,6 @@ const uploadDeckAudio = async (req, res) => {
       return res.status(400).json({ error: 'No audio file uploaded' });
     }
 
-    // Remove previous audio file if exists
-    removeDeckAudioFile(deck, req.userId);
-
     const originalName = decodeFilename(req.file.originalname);
 
     const relativePath = path
@@ -224,7 +229,7 @@ const uploadDeckAudio = async (req, res) => {
       .replace(/\\/g, '/');
     const fileUrl = `/api/media/${relativePath}`;
 
-    deck.audio = {
+    const newAudio = {
       url: fileUrl,
       filename: originalName,
       storedFilename: req.file.filename,
@@ -233,6 +238,10 @@ const uploadDeckAudio = async (req, res) => {
       uploadedAt: new Date()
     };
 
+    if (!deck.audios) {
+      deck.audios = [];
+    }
+    deck.audios.push(newAudio);
     await deck.save();
 
     res.json(deck);
@@ -248,14 +257,26 @@ const deleteDeckAudio = async (req, res) => {
       return res.status(404).json({ error: 'Deck not found' });
     }
 
-    if (deck.audio) {
-      removeDeckAudioFile(deck, req.userId);
-      deck.audio = undefined;
-      deck.markModified('audio');
-      await deck.save();
+    const audioId = req.params.audioId;
+    if (!audioId) {
+      return res.status(400).json({ error: 'Audio ID is required' });
     }
 
-    res.json({ message: 'Deck audio removed' });
+    if (!deck.audios || deck.audios.length === 0) {
+      return res.status(404).json({ error: 'No audios found' });
+    }
+
+    const audioIndex = deck.audios.findIndex(a => a._id.toString() === audioId);
+    if (audioIndex === -1) {
+      return res.status(404).json({ error: 'Audio not found' });
+    }
+
+    const audio = deck.audios[audioIndex];
+    removeDeckAudioFile(deck, req.userId, audio.storedFilename);
+    deck.audios.splice(audioIndex, 1);
+    await deck.save();
+
+    res.json({ message: 'Deck audio removed', deck });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -272,7 +293,17 @@ const streamDeckAudio = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to access this deck' });
     }
 
-    if (!deck.audio || !deck.audio.storedFilename) {
+    const audioId = req.params.audioId;
+    if (!audioId) {
+      return res.status(400).json({ error: 'Audio ID is required' });
+    }
+
+    if (!deck.audios || deck.audios.length === 0) {
+      return res.status(404).json({ error: 'No audios found' });
+    }
+
+    const audio = deck.audios.find(a => a._id.toString() === audioId);
+    if (!audio || !audio.storedFilename) {
       return res.status(404).json({ error: 'Audio not found' });
     }
 
@@ -281,7 +312,7 @@ const streamDeckAudio = async (req, res) => {
       '../../media/deck-audio',
       deck.owner.toString(),
       deck._id.toString(),
-      deck.audio.storedFilename
+      audio.storedFilename
     );
 
     if (!fs.existsSync(audioPath)) {
@@ -290,7 +321,7 @@ const streamDeckAudio = async (req, res) => {
 
     const stat = fs.statSync(audioPath);
     const fileSize = stat.size;
-    const mimeType = deck.audio.mimeType || mime.lookup(deck.audio.filename) || 'audio/mpeg';
+    const mimeType = audio.mimeType || mime.lookup(audio.filename) || 'audio/mpeg';
     const range = req.headers.range;
 
     if (!range) {
@@ -300,7 +331,7 @@ const streamDeckAudio = async (req, res) => {
         'Content-Length': fileSize,
         'Content-Type': mimeType,
         'Accept-Ranges': 'bytes',
-        'Content-Disposition': buildContentDisposition(deck.audio.filename),
+        'Content-Disposition': buildContentDisposition(audio.filename),
         'Cache-Control': 'no-cache',
       });
       file.on('open', () => file.pipe(res));
@@ -331,7 +362,7 @@ const streamDeckAudio = async (req, res) => {
       'Accept-Ranges': 'bytes',
       'Content-Length': chunkSize,
       'Content-Type': mimeType,
-      'Content-Disposition': buildContentDisposition(deck.audio.filename),
+      'Content-Disposition': buildContentDisposition(audio.filename),
       'Cache-Control': 'no-cache',
     });
 
