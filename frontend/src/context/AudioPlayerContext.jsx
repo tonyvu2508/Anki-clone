@@ -7,6 +7,7 @@ const trackDefaults = {
   deckId: null,
   title: '',
   src: '',
+  mimeType: '',
   isVisible: false,
 };
 
@@ -62,7 +63,7 @@ export function AudioPlayerProvider({ children }) {
     setAudioElement(node || null);
   }, []);
 
-  const playDeckAudio = useCallback(async ({ deckId, title, src }) => {
+  const playDeckAudio = useCallback(async ({ deckId, title, src, mimeType = 'audio/mpeg' }) => {
     if (!src) return;
     if (!audioRef.current) return;
 
@@ -74,11 +75,21 @@ export function AudioPlayerProvider({ children }) {
       const audio = audioRef.current;
       
       // If it's a different source, reset and load new source
-      if (audio.src !== normalizedSrc) {
+      const currentSrc = audio.querySelector('source')?.src || audio.src;
+      if (currentSrc !== normalizedSrc) {
         audio.pause();
+        
+        // Clear existing sources
+        while (audio.firstChild) {
+          audio.removeChild(audio.firstChild);
+        }
         audio.removeAttribute('src');
-        audio.load();
-        audio.src = normalizedSrc;
+        
+        // Create and add source element with proper MIME type
+        const source = document.createElement('source');
+        source.src = normalizedSrc;
+        source.type = mimeType;
+        audio.appendChild(source);
         
         // Wait for audio to be ready before playing
         await new Promise((resolve, reject) => {
@@ -95,7 +106,10 @@ export function AudioPlayerProvider({ children }) {
           
           const handleError = (e) => {
             cleanup();
-            reject(new Error('Failed to load audio'));
+            const errorMsg = audio.error 
+              ? `Media error: ${audio.error.message || 'Unknown error'}`
+              : 'Failed to load audio';
+            reject(new Error(errorMsg));
           };
           
           // Timeout after 10 seconds
@@ -149,14 +163,16 @@ export function AudioPlayerProvider({ children }) {
         deckId,
         title,
         src,
+        mimeType,
         isVisible: true,
       });
       setError('');
     } catch (err) {
       console.error('Failed to play audio', err);
       const mediaErrorCode = audioRef.current?.error?.code;
+      const errorMessage = audioRef.current?.error?.message;
       const reason = mediaErrorCode
-        ? `Media error code ${mediaErrorCode}`
+        ? `Media error code ${mediaErrorCode}${errorMessage ? `: ${errorMessage}` : ''}`
         : err?.message || 'Failed to play audio';
       setError(reason);
     } finally {
@@ -191,9 +207,14 @@ export function AudioPlayerProvider({ children }) {
 
   const stopAudio = useCallback(() => {
     if (!audioRef.current) return;
-    audioRef.current.pause();
-    audioRef.current.removeAttribute('src');
-    audioRef.current.load();
+    const audio = audioRef.current;
+    audio.pause();
+    // Clear sources
+    while (audio.firstChild) {
+      audio.removeChild(audio.firstChild);
+    }
+    audio.removeAttribute('src');
+    audio.load();
     setTrack(trackDefaults);
     setError('');
   }, []);

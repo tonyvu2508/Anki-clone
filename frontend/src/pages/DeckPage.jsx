@@ -202,6 +202,7 @@ function DeckPage() {
         deckId: id,
         title: deck?.title || 'Deck audio',
         src: audioSrc,
+        mimeType: deck?.audio?.mimeType || 'audio/mpeg',
       });
     }
   };

@@ -291,20 +291,33 @@ const streamDeckAudio = async (req, res) => {
     const stat = fs.statSync(audioPath);
     const fileSize = stat.size;
     const mimeType = deck.audio.mimeType || mime.lookup(deck.audio.filename) || 'audio/mpeg';
-    const DEFAULT_CHUNK_SIZE = 1024 * 1024; // 1MB
-    let range = req.headers.range;
+    const range = req.headers.range;
 
     if (!range) {
-      const end = Math.min(DEFAULT_CHUNK_SIZE - 1, fileSize - 1);
-      range = `bytes=0-${end}`;
+      // No range header - return full file with 200 OK
+      const file = fs.createReadStream(audioPath);
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': mimeType,
+        'Accept-Ranges': 'bytes',
+        'Content-Disposition': buildContentDisposition(deck.audio.filename),
+        'Cache-Control': 'no-cache',
+      });
+      file.on('open', () => file.pipe(res));
+      file.on('error', (err) => {
+        console.error('Stream error:', err);
+        res.status(500).end();
+      });
+      return;
     }
 
+    // Handle range request
     const parts = range.replace(/bytes=/, '').split('-');
     let start = parseInt(parts[0], 10);
-    let end = parts[1] ? parseInt(parts[1], 10) : Math.min(start + DEFAULT_CHUNK_SIZE - 1, fileSize - 1);
+    let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
     start = isNaN(start) ? 0 : start;
-    end = isNaN(end) ? Math.min(start + DEFAULT_CHUNK_SIZE - 1, fileSize - 1) : Math.min(end, fileSize - 1);
+    end = isNaN(end) ? fileSize - 1 : Math.min(end, fileSize - 1);
 
     if (start >= fileSize || end >= fileSize || start > end) {
       return res.status(416).json({ error: 'Requested range not satisfiable' });
