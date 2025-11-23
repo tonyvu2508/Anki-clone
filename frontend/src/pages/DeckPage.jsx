@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDeck, togglePublicDeck, exportDeck, generateTreeCards, uploadDeckAudio, deleteDeckAudio } from '../api/decks';
+import { getDeck, togglePublicDeck, exportDeck, generateTreeCards, uploadDeckAudio, deleteDeckAudio, updateDeck } from '../api/decks';
 import { getItems, createItem } from '../api/items';
 import TreeView from '../components/TreeView';
 import CardList from '../components/CardList';
+import Modal from '../components/Modal';
+import RichTextEditor from '../components/RichTextEditor';
 import { getToken } from '../utils/auth';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
 import './DeckPage.css';
@@ -40,6 +42,10 @@ function DeckPage() {
   const [generatingCards, setGeneratingCards] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [showAudioList, setShowAudioList] = useState(false);
+  const [showDeckNoteModal, setShowDeckNoteModal] = useState(false);
+  const [editingDeckNote, setEditingDeckNote] = useState(false);
+  const [deckNote, setDeckNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const audioInputRef = useRef(null);
   const { playDeckAudio, pauseAudio, resumeAudio, track, isPlaying } = useAudioPlayer();
   const isDeckAudioActive = track.deckId === id;
@@ -53,9 +59,34 @@ function DeckPage() {
     try {
       const response = await getDeck(id);
       setDeck(response.data);
+      setDeckNote(response.data.note || '');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load deck');
     }
+  };
+
+  const handleSaveDeckNote = async () => {
+    setSavingNote(true);
+    try {
+      await updateDeck(id, { note: deckNote });
+      setEditingDeckNote(false);
+      await loadDeck();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to save note');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleOpenDeckNote = () => {
+    setDeckNote(deck?.note || '');
+    setEditingDeckNote(false);
+    setShowDeckNoteModal(true);
+  };
+
+  const handleCloseDeckNote = () => {
+    setShowDeckNoteModal(false);
+    setEditingDeckNote(false);
   };
 
   const loadItems = async () => {
@@ -362,6 +393,17 @@ function DeckPage() {
             )}
           </div>
 
+          <div className="deck-note-button-container">
+            <button
+              type="button"
+              className="icon-button deck-note-open"
+              onClick={handleOpenDeckNote}
+              title="Open deck note"
+            >
+              📝 Note
+            </button>
+          </div>
+
           {showAddRootForm && (
             <form onSubmit={handleAddRootItem} className="deck-add-root-form">
               <input
@@ -404,6 +446,69 @@ function DeckPage() {
           />
         </div>
       </div>
+
+      <Modal
+        isOpen={showDeckNoteModal}
+        onClose={handleCloseDeckNote}
+        title="Deck Note"
+      >
+        {editingDeckNote ? (
+          <div className="note-modal-content">
+            <RichTextEditor
+              value={deckNote}
+              onChange={setDeckNote}
+              placeholder="Add a note for this deck..."
+            />
+            <div className="note-modal-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleSaveDeckNote}
+                disabled={savingNote}
+              >
+                {savingNote ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setEditingDeckNote(false);
+                  setDeckNote(deck?.note || '');
+                }}
+                disabled={savingNote}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="note-modal-content">
+            <div
+              className="note-display"
+              dangerouslySetInnerHTML={{ __html: deck?.note || '<p class="note-empty">No note added yet.</p>' }}
+            />
+            <div className="note-modal-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  setEditingDeckNote(true);
+                  setDeckNote(deck?.note || '');
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleCloseDeckNote}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

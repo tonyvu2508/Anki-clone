@@ -6,6 +6,7 @@ const cardSchema = new mongoose.Schema({
   front: { type: String, required: true },
   back: { type: String, required: true },
   tags: [String],
+  note: { type: String, default: '' },
   // Media files
   frontMedia: [{
     type: { type: String, enum: ['image', 'audio', 'video'] },

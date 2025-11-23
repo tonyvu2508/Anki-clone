@@ -23,7 +23,7 @@ const getCards = async (req, res) => {
 const createCard = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { front, back, tags, frontMedia, backMedia, isTreeGenerated } = req.body;
+    const { front, back, tags, frontMedia, backMedia, isTreeGenerated, note } = req.body;
 
     if (!front || !back) {
       return res.status(400).json({ error: 'Front and back are required' });
@@ -57,7 +57,8 @@ const createCard = async (req, res) => {
       tags: tags || [],
       frontMedia: frontMedia || [],
       backMedia: backMedia || [],
-      isTreeGenerated: isTreeGeneratedFlag || false
+      isTreeGenerated: isTreeGeneratedFlag || false,
+      note: note || ''
     });
 
     await card.save();
@@ -88,7 +89,7 @@ const getCard = async (req, res) => {
 
 const updateCard = async (req, res) => {
   try {
-    const { front, back, tags, frontMedia, backMedia } = req.body;
+    const { front, back, tags, frontMedia, backMedia, note } = req.body;
     const card = await Card.findById(req.params.id).populate('item');
     
     if (!card) {
@@ -106,6 +107,7 @@ const updateCard = async (req, res) => {
     if (tags !== undefined) card.tags = tags;
     if (frontMedia !== undefined) card.frontMedia = frontMedia;
     if (backMedia !== undefined) card.backMedia = backMedia;
+    if (note !== undefined) card.note = note;
 
     await card.save();
     res.json(card);

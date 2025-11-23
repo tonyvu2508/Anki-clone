@@ -2,16 +2,22 @@ import { useState, useEffect } from 'react';
 import { getCards, createCard, updateCard, deleteCard } from '../api/cards';
 import { uploadMedia } from '../api/media';
 import MediaDisplay from './MediaDisplay';
+import Modal from './Modal';
+import RichTextEditor from './RichTextEditor';
 
 function CardList({ itemId, isLeaf, hasChildren = false }) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
-  const [formData, setFormData] = useState({ front: '', back: '', tags: '' });
+  const [formData, setFormData] = useState({ front: '', back: '', tags: '', note: '' });
   const [frontMediaFiles, setFrontMediaFiles] = useState([]);
   const [backMediaFiles, setBackMediaFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [selectedCardNote, setSelectedCardNote] = useState(null);
+  const [editingCardNote, setEditingCardNote] = useState(false);
+  const [cardNoteContent, setCardNoteContent] = useState('');
 
   useEffect(() => {
     if (itemId) {
@@ -49,6 +55,7 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
           front: formData.front,
           back: formData.back,
           tags,
+          note: formData.note || '',
           frontMedia: frontMediaFiles,
           backMedia: backMediaFiles,
         });
@@ -58,12 +65,13 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
           front: formData.front,
           back: formData.back,
           tags,
+          note: formData.note || '',
           frontMedia: frontMediaFiles,
           backMedia: backMediaFiles,
         });
         setShowAddForm(false);
       }
-      setFormData({ front: '', back: '', tags: '' });
+      setFormData({ front: '', back: '', tags: '', note: '' });
       setFrontMediaFiles([]);
       setBackMediaFiles([]);
       loadCards();
@@ -78,6 +86,7 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
       front: card.front,
       back: card.back,
       tags: card.tags ? card.tags.join(', ') : '',
+      note: card.note || '',
     });
     setFrontMediaFiles(card.frontMedia || []);
     setBackMediaFiles(card.backMedia || []);
@@ -98,7 +107,7 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
   const handleCancel = () => {
     setShowAddForm(false);
     setEditingCard(null);
-    setFormData({ front: '', back: '', tags: '' });
+    setFormData({ front: '', back: '', tags: '', note: '' });
     setFrontMediaFiles([]);
     setBackMediaFiles([]);
   };
@@ -239,7 +248,22 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
             )}
           </div>
 
+          {/* Note - removed from form, will be in modal */}
+
           <div style={styles.formActions}>
+            <button
+              type="button"
+              style={styles.noteButton}
+              onClick={() => {
+                setSelectedCardNote({ _id: 'new', front: formData.front, back: formData.back, note: formData.note || '' });
+                setCardNoteContent(formData.note || '');
+                setEditingCardNote(true);
+                setShowNoteModal(true);
+              }}
+              title="Add/Edit note"
+            >
+              📝 Note
+            </button>
             <button type="submit" style={styles.submitButton} disabled={uploading}>
               {uploading ? 'Uploading...' : editingCard ? 'Update' : 'Create'}
             </button>
@@ -285,6 +309,18 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
               </div>
               <div style={styles.cardActions}>
                 <button
+                  onClick={() => {
+                    setSelectedCardNote(card);
+                    setCardNoteContent(card.note || '');
+                    setEditingCardNote(false);
+                    setShowNoteModal(true);
+                  }}
+                  style={styles.noteButton}
+                  title="View/Edit note"
+                >
+                  📝 Note
+                </button>
+                <button
                   onClick={() => handleEdit(card)}
                   style={styles.editButton}
                 >
@@ -305,6 +341,94 @@ function CardList({ itemId, isLeaf, hasChildren = false }) {
       {!loading && cards.length === 0 && (
         <div style={styles.empty}>No cards yet. Add your first card!</div>
       )}
+
+      <Modal
+        isOpen={showNoteModal}
+        onClose={() => {
+          setShowNoteModal(false);
+          setSelectedCardNote(null);
+          setEditingCardNote(false);
+        }}
+        title={`Card Note${selectedCardNote ? ` - ${selectedCardNote.front.substring(0, 30)}...` : ''}`}
+      >
+        {editingCardNote && selectedCardNote ? (
+          <div className="note-modal-content">
+            <RichTextEditor
+              value={cardNoteContent}
+              onChange={setCardNoteContent}
+              placeholder="Add a note for this card..."
+            />
+            <div className="note-modal-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={async () => {
+                  try {
+                    if (selectedCardNote._id === 'new') {
+                      // Update formData with note
+                      setFormData({ ...formData, note: cardNoteContent });
+                      setShowNoteModal(false);
+                      setEditingCardNote(false);
+                      setSelectedCardNote(null);
+                    } else {
+                      await updateCard(selectedCardNote._id, { note: cardNoteContent });
+                      setEditingCardNote(false);
+                      loadCards();
+                    }
+                  } catch (err) {
+                    alert(err.response?.data?.error || 'Failed to save note');
+                  }
+                }}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setEditingCardNote(false);
+                  setCardNoteContent(selectedCardNote.note || '');
+                  if (selectedCardNote._id === 'new') {
+                    setShowNoteModal(false);
+                    setSelectedCardNote(null);
+                  }
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="note-modal-content">
+            <div
+              className="note-display"
+              dangerouslySetInnerHTML={{ __html: selectedCardNote?.note || '<p class="note-empty">No note added yet.</p>' }}
+            />
+            <div className="note-modal-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  setEditingCardNote(true);
+                  setCardNoteContent(selectedCardNote?.note || '');
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setShowNoteModal(false);
+                  setSelectedCardNote(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -466,6 +590,14 @@ const styles = {
     display: 'flex',
     gap: '0.5rem',
   },
+  noteButton: {
+    padding: '0.5rem 1rem',
+    backgroundColor: 'var(--primary-color, #007bff)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
   editButton: {
     padding: '0.5rem 1rem',
     backgroundColor: 'var(--warning-color, #ffc107)',
@@ -481,6 +613,20 @@ const styles = {
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
+  },
+  noteSection: {
+    marginTop: '0.5rem',
+    padding: '0.5rem',
+    backgroundColor: 'var(--accent-color, #f0f0f0)',
+    borderRadius: '4px',
+    border: '1px solid var(--border-color, #ddd)',
+  },
+  noteContent: {
+    marginTop: '0.25rem',
+    whiteSpace: 'pre-wrap',
+    wordWrap: 'break-word',
+    color: 'var(--text-color, #212121)',
+    fontSize: '0.9rem',
   },
   empty: {
     textAlign: 'center',

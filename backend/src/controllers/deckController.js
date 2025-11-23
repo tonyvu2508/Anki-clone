@@ -125,7 +125,7 @@ const getDeck = async (req, res) => {
 
 const updateDeck = async (req, res) => {
   try {
-    const { title, isPublic } = req.body;
+    const { title, isPublic, note } = req.body;
     
     const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
     if (!deck) {
@@ -135,6 +135,11 @@ const updateDeck = async (req, res) => {
     // Update title if provided
     if (title !== undefined) {
       deck.title = title;
+    }
+
+    // Update note if provided
+    if (note !== undefined) {
+      deck.note = note;
     }
 
     // Handle public status

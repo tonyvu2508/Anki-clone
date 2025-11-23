@@ -12,8 +12,8 @@ export const getDeck = (id) => {
   return client.get(`/decks/${id}`);
 };
 
-export const updateDeck = (id, title) => {
-  return client.put(`/decks/${id}`, { title });
+export const updateDeck = (id, data) => {
+  return client.put(`/decks/${id}`, data);
 };
 
 export const togglePublicDeck = (id) => {

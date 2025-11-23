@@ -14,6 +14,7 @@ const deckSchema = new mongoose.Schema({
     mimeType: { type: String },
     uploadedAt: { type: Date }
   }],
+  note: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
