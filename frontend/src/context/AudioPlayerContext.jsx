@@ -99,38 +99,94 @@ export function AudioPlayerProvider({ children }) {
         audio.appendChild(source);
         
         // Wait for audio to be ready before playing
+        // On mobile, we need to be more lenient with readyState
         await new Promise((resolve, reject) => {
+          let resolved = false;
+          
+          const handleLoadedData = () => {
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              resolve();
+            }
+          };
+          
           const handleCanPlay = () => {
-            cleanup();
-            resolve();
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              resolve();
+            }
+          };
+          
+          const handleCanPlayThrough = () => {
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              resolve();
+            }
           };
           
           const handleError = (e) => {
-            cleanup();
-            const errorMsg = audio.error 
-              ? `Media error: ${audio.error.message || 'Unknown error'}`
-              : 'Failed to load audio';
-            reject(new Error(errorMsg));
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              const errorMsg = audio.error 
+                ? `Media error: ${audio.error.message || 'Unknown error'}`
+                : 'Failed to load audio';
+              reject(new Error(errorMsg));
+            }
           };
           
-          // Timeout after 10 seconds
-          const timeout = setTimeout(() => {
-            cleanup();
-            // Try to resolve anyway - sometimes canplay doesn't fire but audio is playable
-            if (audio.readyState >= 1) { // HAVE_METADATA
-              resolve();
-            } else {
-              reject(new Error('Audio loading timeout'));
+          // Check readyState periodically (for mobile browsers that don't fire events properly)
+          const checkReadyState = setInterval(() => {
+            // On mobile, sometimes readyState changes but events don't fire
+            if (audio.readyState >= 1) { // HAVE_METADATA or higher
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                resolve();
+              }
             }
-          }, 10000);
+          }, 200);
+          
+          // Timeout after 15 seconds (longer for mobile)
+          const timeout = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              // On mobile, be more lenient - try to play even if readyState is low
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              console.log('Audio loading timeout check:', { 
+                readyState: audio.readyState, 
+                isMobile, 
+                src: normalizedSrc.substring(0, 50) 
+              });
+              if (audio.readyState >= 1) {
+                resolve();
+              } else if (isMobile && audio.readyState >= 0 && !audio.error) {
+                // On mobile, if no error and we have a source, try anyway
+                console.log('Mobile: attempting to play with readyState:', audio.readyState);
+                resolve();
+              } else {
+                reject(new Error(`Audio loading timeout (readyState: ${audio.readyState}, error: ${audio.error?.message || 'none'})`));
+              }
+            }
+          }, 15000);
           
           const cleanup = () => {
+            audio.removeEventListener('loadeddata', handleLoadedData);
             audio.removeEventListener('canplay', handleCanPlay);
+            audio.removeEventListener('canplaythrough', handleCanPlayThrough);
             audio.removeEventListener('error', handleError);
+            clearInterval(checkReadyState);
             clearTimeout(timeout);
           };
           
+          // Listen to multiple events for better mobile compatibility
+          audio.addEventListener('loadeddata', handleLoadedData, { once: true });
           audio.addEventListener('canplay', handleCanPlay, { once: true });
+          audio.addEventListener('canplaythrough', handleCanPlayThrough, { once: true });
           audio.addEventListener('error', handleError, { once: true });
           audio.load();
         });
@@ -166,8 +222,26 @@ export function AudioPlayerProvider({ children }) {
         isVisible: true,
       });
       
-      // Now play
-      await audio.play();
+      // Now play - with retry for mobile
+      try {
+        await audio.play();
+      } catch (playError) {
+        // On mobile, sometimes first play() fails, try again after a short delay
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        console.log('First play() failed:', { 
+          error: playError.message, 
+          readyState: audio.readyState, 
+          isMobile,
+          networkState: audio.networkState 
+        });
+        if (isMobile && audio.readyState >= 1 && !audio.error) {
+          console.log('Retrying play() on mobile after delay...');
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await audio.play();
+        } else {
+          throw playError;
+        }
+      }
       setError('');
     } catch (err) {
       console.error('Failed to play audio', err);
@@ -247,7 +321,7 @@ export function AudioPlayerProvider({ children }) {
           {error && <div className="global-audio-error">{error}</div>}
         </div>
         <div className="global-audio-controls">
-          <audio ref={setAudioRef} controls preload="auto" />
+          <audio ref={setAudioRef} controls preload="auto" playsInline />
           {track.isVisible && (
             <button type="button" className="global-audio-stop" onClick={stopAudio}>
               ✕
