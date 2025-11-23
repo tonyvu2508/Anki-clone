@@ -40,7 +40,7 @@ const decodeFilename = (name) => {
 
 const deckAudioUpload = multer({
   storage: deckAudioStorage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB
   fileFilter: (req, file, cb) => {
     const mimeType = mime.lookup(file.originalname) || file.mimetype;
     if (mimeType && mimeType.startsWith('audio/')) {
