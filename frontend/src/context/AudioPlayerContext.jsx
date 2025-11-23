@@ -74,16 +74,23 @@ export function AudioPlayerProvider({ children }) {
       const normalizedSrc = src.toString();
       const audio = audioRef.current;
       
-      // If it's a different source, reset and load new source
-      const currentSrc = audio.querySelector('source')?.src || audio.src;
-      if (currentSrc !== normalizedSrc) {
+      // Check if this is a different source than what's currently playing
+      const isDifferentSource = track.src !== normalizedSrc || track.deckId !== deckId;
+      
+      if (isDifferentSource) {
+        // Stop current audio completely
         audio.pause();
+        audio.currentTime = 0;
         
         // Clear existing sources
         while (audio.firstChild) {
           audio.removeChild(audio.firstChild);
         }
         audio.removeAttribute('src');
+        audio.load(); // Reset the audio element
+        
+        // Small delay to ensure audio element is reset
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Create and add source element with proper MIME type
         const source = document.createElement('source');
@@ -93,12 +100,6 @@ export function AudioPlayerProvider({ children }) {
         
         // Wait for audio to be ready before playing
         await new Promise((resolve, reject) => {
-          // Check if already ready
-          if (audio.readyState >= 2) { // HAVE_CURRENT_DATA
-            resolve();
-            return;
-          }
-          
           const handleCanPlay = () => {
             cleanup();
             resolve();
@@ -134,7 +135,7 @@ export function AudioPlayerProvider({ children }) {
           audio.load();
         });
       } else {
-        // Same source - check if ready
+        // Same source - just resume or restart from beginning
         if (audio.readyState < 2) {
           // Wait a bit for it to be ready
           await new Promise((resolve) => {
@@ -156,9 +157,7 @@ export function AudioPlayerProvider({ children }) {
         }
       }
       
-      // Now play
-      await audio.play();
-      
+      // Update track state first
       setTrack({
         deckId,
         title,
@@ -166,6 +165,9 @@ export function AudioPlayerProvider({ children }) {
         mimeType,
         isVisible: true,
       });
+      
+      // Now play
+      await audio.play();
       setError('');
     } catch (err) {
       console.error('Failed to play audio', err);
@@ -178,7 +180,7 @@ export function AudioPlayerProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [track.src, track.deckId]);
 
   const pauseAudio = useCallback(() => {
     audioRef.current?.pause();
