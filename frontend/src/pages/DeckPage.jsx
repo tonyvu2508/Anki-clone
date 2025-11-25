@@ -16,6 +16,36 @@ const API_BASE = API_URL.endsWith('/api')
   : API_URL.endsWith('/')
     ? `${API_URL}api`
     : `${API_URL}/api`;
+
+const getResponsiveMaxFilenameLength = () => {
+  if (typeof window === 'undefined') {
+    return 40;
+  }
+  const width = window.innerWidth || 1024;
+  if (width <= 340) return 16;
+  if (width <= 380) return 18;
+  if (width <= 420) return 20;
+  if (width <= 480) return 24;
+  if (width <= 560) return 28;
+  if (width <= 640) return 32;
+  if (width <= 768) return 36;
+  return 40;
+};
+
+const formatFilename = (filename, maxLength = 40) => {
+  if (!filename) return '';
+  if (filename.length <= maxLength) return filename;
+  const parts = filename.split('.');
+  const extension = parts.length > 1 ? `.${parts.pop()}` : '';
+  const baseName = parts.join('.') || filename.replace(extension, '');
+  const visibleChars = Math.max(maxLength - extension.length - 3, 5);
+  const headLength = Math.max(Math.floor(visibleChars * 0.6), 3);
+  const tailLength = Math.max(visibleChars - headLength, 2);
+  const head = baseName.slice(0, headLength);
+  const tail = baseName.slice(-tailLength);
+  return `${head}...${tail}${extension}`;
+};
+
 function DeckPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,6 +63,7 @@ function DeckPage() {
   const [editingDeckNote, setEditingDeckNote] = useState(false);
   const [deckNote, setDeckNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [maxFilenameLength, setMaxFilenameLength] = useState(getResponsiveMaxFilenameLength());
   const audioInputRef = useRef(null);
   const { playDeckAudio, pauseAudio, resumeAudio, track, isPlaying } = useAudioPlayer();
   const isDeckAudioActive = track.deckId === id;
@@ -41,6 +72,21 @@ function DeckPage() {
     loadDeck();
     loadItems();
   }, [id]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleResize = () => {
+      setMaxFilenameLength(getResponsiveMaxFilenameLength());
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const loadDeck = async () => {
     try {
@@ -343,7 +389,7 @@ function DeckPage() {
                       <div key={audio._id} className="deck-audio-item">
                         <div className="deck-audio-item-info">
                           <p className="deck-audio-item-name" title={audio.filename}>
-                            {audio.filename || 'Audio track'}
+                            {formatFilename(audio.filename, maxFilenameLength) || 'Audio track'}
                           </p>
                           {isActive && (
                             <p className="deck-audio-item-status">

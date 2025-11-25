@@ -145,6 +145,7 @@
 .deck-audio-item-info {
   flex: 1;
   min-width: 0;
+  max-width: calc(100% - 120px);
 }
 
 .deck-audio-item-name {
@@ -300,6 +301,10 @@
 
   .deck-audio-meta {
     white-space: normal;
+  }
+
+  .deck-audio-item-info {
+    max-width: 100%;
   }
 
   .deck-audio-actions {
