@@ -32,5 +32,8 @@ docker-compose.override.yml
 # Large Anki shared files
 real_anki_shared/
 
+# Backend media/uploads persisted on server
+backend/media/
+
 # Test codes
 test-codes/
