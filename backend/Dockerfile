@@ -5,6 +5,8 @@ RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
+ENV YOUTUBE_DL_SKIP_PYTHON_CHECK=1
+
 COPY package*.json ./
 RUN npm install --only=production
 
