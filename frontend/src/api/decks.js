@@ -72,3 +72,7 @@ export const uploadDeckAudio = (deckId, file) => {
 export const deleteDeckAudio = (deckId, audioId) => {
   return client.delete(`/decks/${deckId}/audio/${audioId}`);
 };
+
+export const importDeckAudioFromYouTube = (deckId, url) => {
+  return client.post(`/decks/${deckId}/audio/youtube`, { url });
+};

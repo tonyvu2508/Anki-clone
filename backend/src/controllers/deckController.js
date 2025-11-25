@@ -4,14 +4,129 @@ const { buildTree } = require('../utils/tree');
 const { generateUniquePublicId } = require('../utils/idGenerator');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const multer = require('multer');
 const mime = require('mime-types');
 const ffmpeg = require('fluent-ffmpeg');
-const { promisify } = require('util');
+const { pipeline } = require('stream/promises');
+const youtubeDlExec = require('youtube-dl-exec');
 
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
+  }
+};
+
+const sanitizeFilename = (str = '') => {
+  return str
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const extractVideoId = (input) => {
+  if (!input) return '';
+  try {
+    const parsed = new URL(input);
+    if (parsed.hostname === 'youtu.be') {
+      return parsed.pathname.replace('/', '');
+    }
+    const idParam = parsed.searchParams.get('v');
+    if (idParam) {
+      return idParam;
+    }
+    return parsed.pathname.split('/').pop();
+  } catch (err) {
+    return input;
+  }
+};
+
+const ytDlBinaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+const ytDlSource = path.join(__dirname, '../../node_modules', 'youtube-dl-exec', 'bin', ytDlBinaryName);
+const ytDlSafeDir = path.join(os.tmpdir(), 'yt-dlp-bin');
+const ytDlSafePath = path.join(ytDlSafeDir, ytDlBinaryName);
+
+const ensureYtDlpBinary = () => {
+  try {
+    if (!fs.existsSync(ytDlSource)) {
+      return;
+    }
+    if (!fs.existsSync(ytDlSafeDir)) {
+      fs.mkdirSync(ytDlSafeDir, { recursive: true });
+    }
+    if (!fs.existsSync(ytDlSafePath)) {
+      fs.copyFileSync(ytDlSource, ytDlSafePath);
+      fs.chmodSync(ytDlSafePath, 0o755);
+    }
+    process.env.YOUTUBE_DL_DIR = ytDlSafeDir;
+    process.env.YOUTUBE_DL_FILENAME = ytDlBinaryName;
+  } catch (err) {
+    console.warn('Failed to prepare yt-dlp binary override:', err.message);
+  }
+};
+
+ensureYtDlpBinary();
+
+const downloadWithYoutubei = async (videoUrl) => {
+  const { Innertube } = await import('youtubei.js');
+  const yt = await Innertube.create({ cache: new Map() });
+  const videoId = extractVideoId(videoUrl);
+  const info = await yt.getInfo(videoId);
+  const title = sanitizeFilename(info.basic_info?.title || videoId || 'YouTube audio');
+  const tempFile = path.join(os.tmpdir(), `${videoId}-${Date.now()}.m4a`);
+  const writeStream = fs.createWriteStream(tempFile);
+  const downloadStream = await info.download({
+    type: 'audio',
+    quality: 'best',
+    format: 'mp4'
+  });
+
+  await pipeline(downloadStream, writeStream);
+  return { tempFile, title };
+};
+
+const downloadWithYtDlp = async (videoUrl) => {
+  console.log('Falling back to yt-dlp for YouTube download');
+  const info = await youtubeDlExec(videoUrl, {
+    dumpSingleJson: true,
+    skipDownload: true,
+    quiet: true,
+    noWarnings: true,
+    preferFreeFormats: true,
+    noCheckCertificates: true
+  });
+
+  const title = sanitizeFilename(info.title || info.id || 'YouTube audio');
+  const tempBase = path.join(os.tmpdir(), `ytmp3-${Date.now()}`);
+  const template = `${tempBase}.%(ext)s`;
+
+  await youtubeDlExec(videoUrl, {
+    format: 'bestaudio/best',
+    output: template,
+    quiet: true,
+    noWarnings: true,
+    preferFreeFormats: true,
+    noCheckCertificates: true
+  });
+
+  const dir = path.dirname(tempBase);
+  const baseName = path.basename(tempBase);
+  const downloaded = fs.readdirSync(dir).find((file) => file.startsWith(`${baseName}.`));
+
+  if (!downloaded) {
+    throw new Error('Unable to locate downloaded audio file');
+  }
+
+  const tempFile = path.join(dir, downloaded);
+  return { tempFile, title };
+};
+
+const downloadYouTubeAudio = async (videoUrl) => {
+  try {
+    return await downloadWithYoutubei(videoUrl);
+  } catch (err) {
+    console.warn('youtubei.js download failed, attempting yt-dlp fallback:', err.message);
+    return await downloadWithYtDlp(videoUrl);
   }
 };
 
@@ -473,6 +588,74 @@ const streamDeckAudio = async (req, res) => {
   }
 };
 
+const importDeckAudioFromYouTube = async (req, res) => {
+  const tempFiles = [];
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'YouTube URL is required' });
+    }
+
+    const deck = await Deck.findOne({ _id: req.params.id, owner: req.userId });
+    if (!deck) {
+      return res.status(404).json({ error: 'Deck not found' });
+    }
+
+    const downloadPayload = await downloadYouTubeAudio(url.trim());
+    tempFiles.push(downloadPayload.tempFile);
+
+    const audioDir = path.join(
+      __dirname,
+      '../../media/deck-audio',
+      req.userId.toString(),
+      deck._id.toString()
+    );
+    ensureDir(audioDir);
+
+    const storedFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.mp3`;
+    const finalPath = path.join(audioDir, storedFilename);
+    await convertToMP3(downloadPayload.tempFile, finalPath);
+
+    const stat = fs.statSync(finalPath);
+
+    const relativePath = path
+      .join('deck-audio', req.userId.toString(), deck._id.toString(), storedFilename)
+      .replace(/\\/g, '/');
+    const fileUrl = `/api/media/${relativePath}`;
+    const displayFilename = `${downloadPayload.title || 'YouTube audio'}.mp3`;
+
+    const newAudio = {
+      url: fileUrl,
+      filename: displayFilename,
+      storedFilename,
+      size: stat.size,
+      mimeType: 'audio/mpeg',
+      uploadedAt: new Date()
+    };
+
+    if (!deck.audios) {
+      deck.audios = [];
+    }
+    deck.audios.push(newAudio);
+    await deck.save();
+
+    res.json(deck);
+  } catch (error) {
+    console.error('Error importing audio from YouTube:', error);
+    res.status(500).json({ error: error.message || 'Failed to import audio from YouTube' });
+  } finally {
+    tempFiles.forEach((filePath) => {
+      if (filePath && fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup temp file:', cleanupError.message);
+        }
+      }
+    });
+  }
+};
+
 module.exports = {
   getDecks,
   createDeck,
@@ -483,6 +666,7 @@ module.exports = {
   uploadDeckAudio,
   deleteDeckAudio,
   streamDeckAudio,
-  deckAudioUpload
+  deckAudioUpload,
+  importDeckAudioFromYouTube
 };
 

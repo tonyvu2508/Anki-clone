@@ -11,7 +11,8 @@ const {
   uploadDeckAudio,
   deleteDeckAudio,
   streamDeckAudio,
-  deckAudioUpload
+  deckAudioUpload,
+  importDeckAudioFromYouTube
 } = require('../controllers/deckController');
 const {
   exportDeck,
@@ -36,6 +37,7 @@ router.post('/import', importDeck);
 router.get('/:id/export', exportDeck);
 router.post('/:id/toggle-public', togglePublicDeck);
 router.post('/:id/audio', deckAudioUpload, uploadDeckAudio);
+router.post('/:id/audio/youtube', importDeckAudioFromYouTube);
 router.delete('/:id/audio/:audioId', deleteDeckAudio);
 router.get('/:id/audio/:audioId/stream', streamDeckAudio);
 // Generate tree cards route - must be before generic /:id

@@ -131,6 +131,28 @@
   margin-top: 0.5rem;
 }
 
+.deck-audio-youtube {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.deck-audio-youtube input {
+  flex: 1;
+  min-width: 220px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+}
+
+.deck-audio-youtube button {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
 .deck-audio-item {
   display: flex;
   justify-content: space-between;

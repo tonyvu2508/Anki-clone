@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDeck, togglePublicDeck, exportDeck, generateTreeCards, uploadDeckAudio, deleteDeckAudio, updateDeck } from '../api/decks';
+import { getDeck, togglePublicDeck, exportDeck, generateTreeCards, uploadDeckAudio, deleteDeckAudio, updateDeck, importDeckAudioFromYouTube } from '../api/decks';
 import { getItems, createItem } from '../api/items';
 import TreeView from '../components/TreeView';
 import CardList from '../components/CardList';
@@ -59,6 +59,8 @@ function DeckPage() {
   const [generatingCards, setGeneratingCards] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [showAudioList, setShowAudioList] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [importingYouTube, setImportingYouTube] = useState(false);
   const [showDeckNoteModal, setShowDeckNoteModal] = useState(false);
   const [editingDeckNote, setEditingDeckNote] = useState(false);
   const [deckNote, setDeckNote] = useState('');
@@ -238,6 +240,26 @@ function DeckPage() {
     }
   };
 
+  const handleImportFromYouTube = async (e) => {
+    e.preventDefault();
+    if (!youtubeUrl.trim()) {
+      alert('Please enter a YouTube link');
+      return;
+    }
+
+    setImportingYouTube(true);
+    try {
+      await importDeckAudioFromYouTube(id, youtubeUrl.trim());
+      setYoutubeUrl('');
+      await loadDeck();
+      alert('Imported audio from YouTube');
+    } catch (err) {
+      alert(err.response?.data?.error || err.message || 'Failed to import audio from YouTube');
+    } finally {
+      setImportingYouTube(false);
+    }
+  };
+
   const getAudioSrc = (audio) => {
     if (!audio) return null;
     const params = new URLSearchParams();
@@ -379,6 +401,24 @@ function DeckPage() {
                 </label>
               </div>
             </div>
+            <form className="deck-audio-youtube" onSubmit={handleImportFromYouTube}>
+              <input
+                type="url"
+                placeholder="Paste YouTube link"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                disabled={importingYouTube}
+                aria-label="YouTube audio URL"
+                required
+              />
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={importingYouTube || !youtubeUrl.trim()}
+              >
+                {importingYouTube ? 'Importing…' : 'Import'}
+              </button>
+            </form>
             {showAudioList && (
               <div className="deck-audio-list">
                 {deck?.audios && deck.audios.length > 0 ? (
