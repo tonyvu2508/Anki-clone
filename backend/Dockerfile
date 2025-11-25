@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
-# Install ffmpeg for audio conversion
-RUN apk add --no-cache ffmpeg
+# Install ffmpeg and python3 for yt-dlp compatibility
+RUN apk add --no-cache ffmpeg python3
 
 WORKDIR /app
 
