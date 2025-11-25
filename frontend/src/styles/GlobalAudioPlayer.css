@@ -33,6 +33,29 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
+}
+
+.global-audio-title-text {
+  display: inline-block;
+}
+
+.global-audio-title.marquee {
+  text-overflow: clip;
+}
+
+.global-audio-title.marquee .global-audio-title-text {
+  padding-left: 100%;
+  animation: global-audio-marquee 14s linear infinite;
+}
+
+@keyframes global-audio-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .global-audio-loading {

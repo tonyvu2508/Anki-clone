@@ -16,19 +16,6 @@ const API_BASE = API_URL.endsWith('/api')
   : API_URL.endsWith('/')
     ? `${API_URL}api`
     : `${API_URL}/api`;
-const formatFilename = (filename) => {
-  if (!filename) return '';
-  const maxLength = 40;
-  if (filename.length <= maxLength) return filename;
-  const parts = filename.split('.');
-  const extension = parts.length > 1 ? `.${parts.pop()}` : '';
-  const baseName = parts.join('.') || filename.replace(extension, '');
-  const visibleChars = maxLength - extension.length - 3;
-  const head = baseName.slice(0, Math.max(visibleChars - 10, 5));
-  const tail = baseName.slice(-7);
-  return `${head}...${tail}${extension}`;
-};
-
 function DeckPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -238,7 +225,7 @@ function DeckPage() {
       // Play new audio
       playDeckAudio({
         deckId: id,
-        title: `${deck?.title || 'Deck'} - ${formatFilename(audio.filename)}`,
+        title: `${deck?.title || 'Deck'} - ${audio.filename || 'Audio track'}`,
         src: audioSrc,
         mimeType: audio.mimeType || 'audio/mpeg',
       });
@@ -356,7 +343,7 @@ function DeckPage() {
                       <div key={audio._id} className="deck-audio-item">
                         <div className="deck-audio-item-info">
                           <p className="deck-audio-item-name" title={audio.filename}>
-                            {formatFilename(audio.filename)}
+                            {audio.filename || 'Audio track'}
                           </p>
                           {isActive && (
                             <p className="deck-audio-item-status">

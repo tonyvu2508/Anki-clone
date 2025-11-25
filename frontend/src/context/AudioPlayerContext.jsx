@@ -18,6 +18,8 @@ export function AudioPlayerProvider({ children }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const titleWrapperRef = useRef(null);
+  const [isTitleOverflowing, setIsTitleOverflowing] = useState(false);
 
   useEffect(() => {
     if (!audioElement) return;
@@ -57,6 +59,29 @@ export function AudioPlayerProvider({ children }) {
       }
     };
   }, [track.isVisible]);
+
+  useEffect(() => {
+    if (!track.isVisible) {
+      setIsTitleOverflowing(false);
+      return;
+    }
+
+    const checkOverflow = () => {
+      if (!titleWrapperRef.current) {
+        setIsTitleOverflowing(false);
+        return;
+      }
+      const el = titleWrapperRef.current;
+      setIsTitleOverflowing(el.scrollWidth > el.clientWidth + 1);
+    };
+
+    const frame = requestAnimationFrame(checkOverflow);
+    window.addEventListener('resize', checkOverflow);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', checkOverflow);
+    };
+  }, [track.title, track.isVisible]);
 
   const setAudioRef = useCallback((node) => {
     audioRef.current = node || null;
@@ -316,7 +341,13 @@ export function AudioPlayerProvider({ children }) {
       {children}
       <div className={`global-audio-player ${track.isVisible ? 'visible' : ''}`}>
         <div className="global-audio-info">
-          <div className="global-audio-title">{track.title || 'Deck audio'}</div>
+          <div
+            className={`global-audio-title ${isTitleOverflowing ? 'marquee' : ''}`}
+            ref={titleWrapperRef}
+            title={track.title || 'Deck audio'}
+          >
+            <span className="global-audio-title-text">{track.title || 'Deck audio'}</span>
+          </div>
           {isLoading && <div className="global-audio-loading">Loading audio...</div>}
           {error && <div className="global-audio-error">{error}</div>}
         </div>
