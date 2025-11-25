@@ -40,6 +40,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    volumes:
+      - ./backend/media/deck-audio:/app/media/deck-audio
     networks:
       - anki-network
     # Remove volume mounts for production - use built image
