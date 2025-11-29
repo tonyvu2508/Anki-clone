@@ -3,7 +3,7 @@ services:
     image: mongo:6
     restart: unless-stopped
     volumes:
-      - mongo-data:/data/db
+      - /data/docker/mongo-data:/data/db
     ports:
       - "127.0.0.1:27017:27017"  # Only bind to localhost for security
     environment:
@@ -41,7 +41,7 @@ services:
       retries: 3
       start_period: 40s
     volumes:
-      - ./backend/media/deck-audio:/app/media/deck-audio
+      - /data/media/deck-audio:/app/media/deck-audio
     networks:
       - anki-network
     # Remove volume mounts for production - use built image
@@ -69,10 +69,6 @@ services:
       start_period: 10s
     networks:
       - anki-network
-
-volumes:
-  mongo-data:
-    driver: local
 
 networks:
   anki-network:

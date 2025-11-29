@@ -19,6 +19,9 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' })); // Increase JSON payload limit
 app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Increase URL-encoded payload limit
 
+// Health check (must be before other routes)
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+
 // Public routes (no authentication)
 app.use('/api/public', publicRoutes);
 
@@ -33,9 +36,6 @@ app.use('/api', cardRoutes); // Cards routes include /items/:itemId/cards and /d
 app.use('/api/review', reviewRoutes);
 app.use('/api/apkg', apkgRoutes); // APKG import
 app.use('/api/media', mediaRoutes); // Media upload
-
-// Health check
-app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 module.exports = app;
 

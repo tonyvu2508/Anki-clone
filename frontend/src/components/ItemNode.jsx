@@ -227,11 +227,14 @@ const styles = {
     flex: 1,
   },
   toggleButton: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     cursor: 'pointer',
     padding: '0 0.5rem',
-    fontSize: '0.8rem',
+    fontSize: '0.9rem',
+    color: 'var(--text-color)',
+    borderRadius: '4px',
+    lineHeight: 1,
   },
   spacer: {
     width: '1.5rem',
